@@ -90,7 +90,7 @@ function JobRow({
   return (
     <div
       className={cn(
-        'group border-s-2 transition-colors hover:bg-secondary/30',
+        'group hover:bg-secondary/30 border-s-2 transition-colors',
         statusLeftBorder[displayStatus] ?? 'border-s-border'
       )}
     >
@@ -271,7 +271,7 @@ export default function HistoryPage() {
             <Card key={key} className="border-border bg-card">
               <CardContent className="px-4 py-3">
                 <div className="flex items-center justify-between">
-                  <p className="text-muted-foreground text-[11px] font-medium uppercase tracking-wider">
+                  <p className="text-muted-foreground text-[11px] font-medium tracking-wider uppercase">
                     {t(`stats.${key}`)}
                   </p>
                   {Icon && <Icon className={cn('h-3.5 w-3.5', iconClass)} />}

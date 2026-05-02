@@ -108,7 +108,7 @@ export function JobConfigPanel({
                 disabled={disabled}
                 onClick={() => !disabled && onDownloadTypeChange(type)}
                 className={cn(
-                  'flex items-center gap-2.5 rounded-lg border p-3 text-sm transition-all text-start',
+                  'flex items-center gap-2.5 rounded-lg border p-3 text-start text-sm transition-all',
                   selected
                     ? 'border-primary/50 bg-primary/8 text-foreground'
                     : 'border-border bg-background text-muted-foreground',
@@ -117,11 +117,9 @@ export function JobConfigPanel({
                     : 'hover:border-border/80 hover:bg-secondary hover:text-foreground cursor-pointer'
                 )}
               >
-                <Icon
-                  className={cn('h-4 w-4 shrink-0', selected ? 'text-primary' : '')}
-                />
+                <Icon className={cn('h-4 w-4 shrink-0', selected ? 'text-primary' : '')} />
                 <div className="min-w-0">
-                  <p className="truncate font-medium text-xs">{t(`type.${typeKey}`)}</p>
+                  <p className="truncate text-xs font-medium">{t(`type.${typeKey}`)}</p>
                   <p className="text-[10px] opacity-60">{description}</p>
                 </div>
               </button>

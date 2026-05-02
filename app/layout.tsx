@@ -41,7 +41,7 @@ export default async function RootLayout({
     <html lang={locale} dir={dir} className="bg-background" suppressHydrationWarning>
       <body className={`${peyda.variable} ${geistMono.variable} font-sans antialiased`}>
         <NextIntlClientProvider>
-          <ThemeProvider attribute="class" defaultTheme="system" enableSystem>
+          <ThemeProvider attribute="class" defaultTheme="light" enableSystem>
             {children}
             <Toaster />
           </ThemeProvider>

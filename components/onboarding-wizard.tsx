@@ -130,7 +130,7 @@ function Step2({
             value={token}
             onChange={e => onChange(e.target.value)}
             className={cn(
-              'pe-10 font-mono text-sm',
+              'ps-10 font-mono text-sm',
               error && 'border-destructive focus-visible:ring-destructive'
             )}
             autoComplete="off"
@@ -256,7 +256,7 @@ function Step3({
         </div>
 
         {initialized ? (
-          <div className="flex items-center gap-2.5 rounded-xl bg-success/10 p-3">
+          <div className="bg-success/10 flex items-center gap-2.5 rounded-xl p-3">
             <CheckCircle2 className="text-success h-4 w-4 shrink-0" />
             <span className="text-success text-sm font-medium">{t('step3.success')}</span>
           </div>
@@ -444,7 +444,7 @@ export function OnboardingWizard() {
 
         {/* Progress header */}
         <div className="border-border border-b px-6 pt-5 pb-4">
-          <div className="mb-2.5 flex items-center justify-between">
+          <div className="mb-2.5 flex items-center justify-between ps-2.5">
             <span className="text-muted-foreground text-xs">
               {t('step', { current: step + 1, total: TOTAL })}
             </span>

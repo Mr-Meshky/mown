@@ -99,7 +99,7 @@ function PipelineStep({
         </div>
         <span
           className={cn(
-            'whitespace-nowrap text-[11px] font-medium',
+            'text-[11px] font-medium whitespace-nowrap',
             state === 'done' && 'text-success',
             state === 'active' && 'text-primary',
             state === 'pending' && 'text-muted-foreground',
@@ -264,16 +264,13 @@ export function JobStatusCard({ job, runId }: JobStatusCardProps) {
                 : (getStepState(step.key) as 'done' | 'active' | 'pending' | 'failed')
 
             // For the last visible step when failed, replace with failed state
-            const effectiveState =
-              status === 'failed' && step.key === 'running' ? 'failed' : state
+            const effectiveState = status === 'failed' && step.key === 'running' ? 'failed' : state
 
             return (
               <PipelineStep
                 key={step.key}
                 label={step.label}
-                icon={
-                  status === 'failed' && step.key === 'running' ? XCircle : step.icon
-                }
+                icon={status === 'failed' && step.key === 'running' ? XCircle : step.icon}
                 state={effectiveState}
                 isLast={i === pipelineSteps.length - 1}
               />
@@ -292,7 +289,10 @@ export function JobStatusCard({ job, runId }: JobStatusCardProps) {
             <p className="text-foreground font-mono text-sm font-medium">
               {job.filename ?? job.id}
             </p>
-            <p className="text-muted-foreground mt-0.5 max-w-sm truncate font-mono text-xs" dir="ltr">
+            <p
+              className="text-muted-foreground mt-0.5 max-w-sm truncate font-mono text-xs"
+              dir="ltr"
+            >
               {job.url}
             </p>
           </div>
@@ -331,10 +331,10 @@ export function JobStatusCard({ job, runId }: JobStatusCardProps) {
           </div>
           <div className="border-border bg-background overflow-hidden rounded-lg border">
             {/* Terminal title bar */}
-            <div className="border-border flex items-center gap-1.5 border-b bg-secondary/50 px-3 py-2">
-              <span className="h-2.5 w-2.5 rounded-full bg-destructive/60" />
+            <div className="border-border bg-secondary/50 flex items-center gap-1.5 border-b px-3 py-2">
+              <span className="bg-destructive/60 h-2.5 w-2.5 rounded-full" />
               <span className="bg-warning/60 h-2.5 w-2.5 rounded-full" />
-              <span className="h-2.5 w-2.5 rounded-full bg-success/60" />
+              <span className="bg-success/60 h-2.5 w-2.5 rounded-full" />
               <span className="text-muted-foreground ms-2 font-mono text-[10px]">logs</span>
             </div>
             <ScrollArea className="h-52">
@@ -413,7 +413,7 @@ export function JobStatusCard({ job, runId }: JobStatusCardProps) {
 function MetaItem({ label, children }: { label: string; children: React.ReactNode }) {
   return (
     <div className="space-y-1">
-      <p className="text-muted-foreground/60 text-[10px] font-medium uppercase tracking-wider">
+      <p className="text-muted-foreground/60 text-[10px] font-medium tracking-wider uppercase">
         {label}
       </p>
       <div className="text-foreground">{children}</div>

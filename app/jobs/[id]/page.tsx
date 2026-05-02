@@ -93,9 +93,7 @@ export default function JobPage() {
               <h1 className="text-foreground text-xl font-semibold tracking-tight">
                 {tJobStatus('title')}
               </h1>
-              <p className="text-muted-foreground mt-0.5 font-mono text-sm">
-                Run #{job.runId}
-              </p>
+              <p className="text-muted-foreground mt-0.5 font-mono text-sm">Run #{job.runId}</p>
             </div>
           </div>
         </div>

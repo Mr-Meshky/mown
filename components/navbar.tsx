@@ -32,7 +32,7 @@ export function Navbar() {
             <Zap className="text-primary-foreground h-3.5 w-3.5" fill="currentColor" />
           </div>
           <span className="text-foreground font-semibold tracking-tight">Mown</span>
-          <span className="bg-secondary text-muted-foreground rounded px-1.5 py-0.5 text-[10px] font-medium uppercase tracking-wider">
+          <span className="bg-secondary text-muted-foreground rounded px-1.5 py-0.5 text-[10px] font-medium tracking-wider uppercase">
             beta
           </span>
         </Link>

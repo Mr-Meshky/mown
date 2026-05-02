@@ -201,7 +201,7 @@ export function HomeClient() {
       <Card className="border-border bg-card">
         <CardContent className="p-4 sm:p-5">
           {/* Tab selector */}
-          <div className="mb-4 flex gap-1 rounded-lg bg-secondary p-1">
+          <div className="bg-secondary mb-4 flex gap-1 rounded-lg p-1">
             {inputTabs.map(({ key, icon: Icon, activeColor }) => (
               <button
                 key={key}
@@ -214,9 +214,7 @@ export function HomeClient() {
                     : 'text-muted-foreground hover:text-foreground'
                 )}
               >
-                <Icon
-                  className={cn('h-4 w-4 shrink-0', inputType === key ? activeColor : '')}
-                />
+                <Icon className={cn('h-4 w-4 shrink-0', inputType === key ? activeColor : '')} />
                 <span>{t(`tabs.${key}`)}</span>
               </button>
             ))}
@@ -260,7 +258,7 @@ export function HomeClient() {
       <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
         {/* Download config */}
         <Card className="border-border bg-card">
-          <CardHeader className="px-5 pb-3 pt-4">
+          <CardHeader className="px-5 pt-4 pb-3">
             <CardTitle className="flex items-center gap-2 text-sm font-medium">
               <Settings2 className="text-muted-foreground h-4 w-4" />
               {tJobConfig('title')}
@@ -281,7 +279,7 @@ export function HomeClient() {
 
         {/* GitHub setup */}
         <Card className="border-border bg-card">
-          <CardHeader className="px-5 pb-3 pt-4">
+          <CardHeader className="px-5 pt-4 pb-3">
             <CardTitle className="flex items-center justify-between gap-2 text-sm font-medium">
               <div className="flex items-center gap-2">
                 <Github className="text-muted-foreground h-4 w-4" />
@@ -300,7 +298,7 @@ export function HomeClient() {
 
             <Button
               type="button"
-              variant="outline"
+              variant="secondary"
               size="sm"
               onClick={handleSetup}
               disabled={settingUp}
@@ -317,11 +315,11 @@ export function HomeClient() {
             </Button>
 
             {/* Cookies upload */}
-            <div className="space-y-2 rounded-lg border border-warning/30 bg-warning/5 p-3">
-              <p className="text-warning-foreground text-xs leading-relaxed">
+            <div className="border-warning/30 bg-warning/5 space-y-2 rounded-lg border p-3">
+              <p className="text-warning text-xs leading-relaxed">
                 {cookiesUploaded ? t('setup.cookiesUpdate') : t('setup.cookiesDescription')}
               </p>
-              <label className="border-border hover:border-primary/40 hover:text-foreground flex cursor-pointer items-center gap-2 rounded-md border border-dashed bg-background/50 px-3 py-2 text-xs text-muted-foreground transition-colors">
+              <label className="border-border hover:border-primary/40 hover:text-foreground bg-background/50 text-muted-foreground flex cursor-pointer items-center gap-2 rounded-md border border-dashed px-3 py-2 text-xs transition-colors">
                 <Upload className="h-3.5 w-3.5 shrink-0" />
                 <span>
                   {cookiesUploaded ? 'بارگذاری مجدد cookies.txt' : 'بارگذاری cookies.txt'}
