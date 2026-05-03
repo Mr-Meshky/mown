@@ -35,7 +35,11 @@ mac:
   gatekeeperAssess: false
   target:
     - target: dmg
+      arch:
+        - universal
     - target: zip
+      arch:
+        - universal
   icon: build/icon.icns
 
 dmg:

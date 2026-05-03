@@ -21,14 +21,10 @@ jobs:
       fail-fast: false
       matrix:
         include:
-          - name: macOS (Apple Silicon)
+          - name: macOS (Universal)
             os: macos-latest
             platform: mac
-            arch: arm64
-          - name: macOS (Intel)
-            os: macos-13
-            platform: mac
-            arch: x64
+            arch: universal
           - name: Windows
             os: windows-latest
             platform: win
@@ -132,12 +128,11 @@ jobs:
 
             ### دانلود / Download
 
-            | Platform | Architecture | File |
-            |----------|-------------|------|
-            | macOS | Apple Silicon (M1/M2/M3) | `.dmg` (arm64) |
-            | macOS | Intel | `.dmg` (x64) |
-            | Windows | x64 | `.exe` (installer) |
-            | Linux | x64 | `.AppImage` or `.deb` |
+            | Platform | File |
+            |----------|------|
+            | macOS (Apple Silicon + Intel) | `.dmg` (Universal) |
+            | Windows | `.exe` (installer) |
+            | Linux | `.AppImage` or `.deb` |
 
             ### نصب / Installation
             - **macOS**: فایل `.dmg` را باز کرده و Mown را به Applications بکشید
