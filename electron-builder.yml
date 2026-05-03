@@ -18,14 +18,11 @@ files:
   - "!electron/src"
   - "!electron/tsconfig.json"
 
-# Bundle the Next.js standalone server and static assets into resources/app/
+# Bundle the Next.js standalone server into resources/app/
+# (static assets are already inside standalone after the cp step in CI)
 extraResources:
   - from: .next/standalone
     to: app
-    filter:
-      - "**/*"
-  - from: .next/static
-    to: app/.next/static
     filter:
       - "**/*"
 
