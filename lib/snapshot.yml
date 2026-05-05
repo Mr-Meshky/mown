@@ -35,6 +35,8 @@ jobs:
         run: |
           sudo apt-get update
           sudo apt-get install -y httrack
+          which httrack
+          httrack --version
 
       - name: Mirror website with HTTrack
         env:
@@ -51,6 +53,8 @@ jobs:
           # -O: output directory
           # --robots=0: ignore robots.txt
           # -K: keep original file structure
+          # -C: continue interrupted downloads
+          # --disable-security-limits: bypass some security checks
           httrack "$URL" \
             -r3 \
             -%v \
@@ -58,7 +62,10 @@ jobs:
             --robots=0 \
             -K \
             --max-rate=0 \
-            --saturate=50
+            --saturate=50 \
+            -C \
+            --disable-security-limits \
+            || echo "HTTrack completed with some errors (some files may be missing)"
 
           echo "Mirror complete"
           echo "Files saved to: downloads/snapshot/$DIR_NAME"

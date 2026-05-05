@@ -9,6 +9,7 @@ import {
   Globe,
   HardDrive,
   Loader2,
+  Merge,
   Music,
   Settings2,
   Upload,
@@ -257,6 +258,19 @@ export function HomeClient() {
           )}
         </CardContent>
       </Card>
+
+      {/* Merge parts link */}
+      <div className="flex justify-center">
+        <Button
+          type="button"
+          variant="link"
+          onClick={() => router.push('/merge')}
+          className="gap-2 text-sm"
+        >
+          <Merge className="h-4 w-4" />
+          {t('merge.link')}
+        </Button>
+      </div>
 
       {/* Settings grid */}
       <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">

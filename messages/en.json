@@ -22,6 +22,9 @@
   "home": {
     "title": "Download Anything",
     "subtitle": "via GitHub Actions",
+     "merge": {
+      "link": "Merge downloaded parts"
+    },
     "tabs": {
       "youtube": "YouTube",
       "soundcloud": "SoundCloud",
@@ -171,5 +174,23 @@
     "details": "Details",
     "viewFolder": "Browse Files",
     "viewCommit": "View Commit"
+  },
+  "merge": {
+    "title": "Merge Parts",
+    "description": "Select the zip files you downloaded in parts to merge them back together.",
+    "dropzone": "Click to select files or drop them here",
+    "dropzoneHint": "Only .zip files are supported",
+    "filesAdded": "{count} files added",
+    "filesSelected": "{count} files selected",
+    "clearAll": "Clear All",
+    "mergeButton": "Merge Files",
+    "merging": "Merging...",
+    "success": "Files merged successfully",
+    "back": "Back to Home",
+    "errors": {
+      "noZip": "Only zip files are supported",
+      "noFiles": "No files selected",
+      "mergeFailed": "Failed to merge files"
+    }
   }
 }
