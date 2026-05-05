@@ -3,7 +3,6 @@
 import { useEffect, useRef, useState } from 'react'
 import {
   CheckCircle2,
-  Circle,
   Clock,
   Download,
   ExternalLink,
@@ -22,7 +21,6 @@ import { ScrollArea } from '@/components/ui/scroll-area'
 import { Separator } from '@/components/ui/separator'
 import { JobStatusBadge } from '@/components/job-status-badge'
 import { updateJob, getSettings } from '@/lib/store'
-import type { Job } from '@/lib/store'
 import { getDownloadTypeFolder } from '@/lib/utils'
 import { useTranslations } from 'next-intl'
 import { cn } from '@/lib/utils'
