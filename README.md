@@ -219,4 +219,10 @@ pnpm start
 تحت [مجوز MIT](LICENSE) منتشر شده است.  
 © ۲۰۲۶ [MrMeshky](https://github.com/mr-meshky)
 
+---
+
+## 📢 کانال تلگرام
+
+[https://t.me/downmown](https://t.me/downmown)
+
 </div>
