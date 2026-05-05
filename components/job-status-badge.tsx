@@ -22,7 +22,7 @@ const statusClassMap: Record<string, string> = {
   in_progress: 'border-primary/40 bg-primary/10 text-primary',
   running: 'border-primary/40 bg-primary/10 text-primary',
   completed: 'border-success/40 bg-success/10 text-success',
-  failed: 'border-destructive/40 bg-destructive/10 text-destructive-foreground',
+  failed: 'border-destructive/40 bg-destructive/10 text-destructive',
 }
 
 export function JobStatusBadge({ status, className }: JobStatusBadgeProps) {
