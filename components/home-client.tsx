@@ -152,6 +152,7 @@ export function HomeClient() {
     try {
       const typeMap: Record<InputType, string> = {
         youtube: 'youtube',
+        soundcloud: 'soundcloud',
         direct: 'direct',
         snapshot: 'snapshot',
       }

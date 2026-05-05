@@ -295,7 +295,7 @@ export default function HistoryPage() {
               <p className="text-muted-foreground mt-1 text-sm">{t('emptyHint')}</p>
               <Link href="/" className="mt-4">
                 <Button size="sm" className="gap-2">
-                  <ArrowLeft className="h-3.5 w-3.5 rtl:rotate-180" />
+                  <ArrowLeft className="h-3.5 w-3.5 rtl:-rotate-180" />
                   {t('newDownload')}
                 </Button>
               </Link>

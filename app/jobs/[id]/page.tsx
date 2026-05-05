@@ -86,7 +86,7 @@ export default function JobPage() {
           <div className="flex items-center gap-3">
             <Link href="/history">
               <Button variant="ghost" size="icon" className="text-muted-foreground h-8 w-8">
-                <ChevronLeft className="h-4 w-4 rtl:rotate-180" />
+                <ChevronLeft className="h-4 w-4 rtl:-rotate-180" />
               </Button>
             </Link>
             <div>

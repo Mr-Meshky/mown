@@ -124,7 +124,6 @@ function PipelineStep({
 export function JobStatusCard({ job, runId }: JobStatusCardProps) {
   const router = useRouter()
   const t = useTranslations('jobStatus')
-  const tCommon = useTranslations('common')
   const TypeIcon = typeIcons[job.downloadType] ?? HardDrive
   const logRef = useRef<HTMLDivElement>(null)
   const commitFetchedRef = useRef(false)
