@@ -1,0 +1,274 @@
+name: Mown Download SoundCloud
+
+on:
+  workflow_dispatch:
+    inputs:
+      url:
+        description: 'SoundCloud URL to download'
+        required: true
+        type: string
+      quality:
+        description: 'Audio quality'
+        required: true
+        default: 'best'
+        type: choice
+        options:
+          - best
+          - 320k
+          - 256k
+          - 192k
+          - 128k
+          - audio
+      format:
+        description: 'Output format'
+        required: true
+        default: 'mp3'
+        type: choice
+        options:
+          - mp3
+          - wav
+          - flac
+          - ogg
+
+permissions:
+  contents: read
+  actions: write
+
+jobs:
+  download:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Install dependencies
+        env:
+          DEBIAN_FRONTEND: noninteractive
+          TZ: UTC
+        run: |
+          python -m pip install --upgrade pip
+          pip install yt-dlp[default,EJS]
+          sudo apt-get update
+          sudo apt-get install -y ca-certificates ffmpeg
+
+      - name: Create downloads directory
+        run: mkdir -p downloads/soundcloud
+
+      - name: Download audio
+        id: download
+        env:
+          URL: ${{ github.event.inputs.url }}
+          QUALITY: ${{ github.event.inputs.quality }}
+          FORMAT: ${{ github.event.inputs.format }}
+        run: |
+          echo "Starting SoundCloud download..."
+          echo "URL: $URL"
+          echo "Quality: $QUALITY"
+          echo "Format: $FORMAT"
+
+          # Build quality options for audio
+          case "$QUALITY" in
+            "best")
+              QUALITY_OPT="bestaudio/best"
+              ;;
+            "320k")
+              QUALITY_OPT="bestaudio[abr<=320]/bestaudio/best"
+              ;;
+            "256k")
+              QUALITY_OPT="bestaudio[abr<=256]/bestaudio/best"
+              ;;
+            "192k")
+              QUALITY_OPT="bestaudio[abr<=192]/bestaudio/best"
+              ;;
+            "128k")
+              QUALITY_OPT="bestaudio[abr<=128]/bestaudio/best"
+              ;;
+            "audio")
+              QUALITY_OPT="bestaudio/best"
+              ;;
+            *)
+              QUALITY_OPT="bestaudio/best"
+              ;;
+          esac
+
+          OUTPUT_TEMPLATE="downloads/soundcloud/%(title)s.%(ext)s"
+          yt-dlp \
+            --format "$QUALITY_OPT" \
+            --extract-audio \
+            --audio-format "$FORMAT" \
+            --audio-quality 0 \
+            --output "$OUTPUT_TEMPLATE" \
+            --write-info-json \
+            --write-thumbnail \
+            --convert-thumbnails jpg \
+            --js-runtimes node \
+            --retries 3 \
+            --fragment-retries 3 \
+            "$URL"
+
+          echo "Download complete"
+
+          # Get the downloaded file name
+          DOWNLOADED_FILE=$(ls -t downloads/soundcloud/*.mp3 downloads/soundcloud/*.wav downloads/soundcloud/*.flac downloads/soundcloud/*.ogg 2>/dev/null | head -1 || echo "")
+          if [ -n "$DOWNLOADED_FILE" ]; then
+            echo "file=$DOWNLOADED_FILE" >> $GITHUB_OUTPUT
+            echo "Downloaded: $DOWNLOADED_FILE"
+          fi
+
+      - name: Extract metadata
+        id: metadata
+        run: |
+          for info_file in downloads/soundcloud/*.info.json; do
+            [ -f "$info_file" ] || continue
+            base_name=$(basename "${info_file%.info.json}")
+
+            # Find local thumbnail
+            thumb_path=""
+            for ext in jpg webp png; do
+              candidate="downloads/soundcloud/${base_name}.${ext}"
+              if [ -f "$candidate" ]; then
+                thumb_path="$candidate"
+                break
+              fi
+            done
+            if [ -z "$thumb_path" ]; then
+              thumb_path=$(ls -t downloads/soundcloud/*.jpg 2>/dev/null | head -1 || echo "")
+            fi
+
+            # Create metadata JSON
+            jq --arg local_thumb "$thumb_path" '{
+              title: (.title // "Unknown"),
+              uploader: (.artist // .uploader // "Unknown"),
+              duration: (.duration_string // "Unknown"),
+              upload_date: (.upload_date // "Unknown"),
+              view_count: (.view_count // 0),
+              description: ((.description // "") | .[0:200]),
+              original_url: (.webpage_url // ""),
+              thumbnail: (if $local_thumb != "" then $local_thumb else (.thumbnail // "") end),
+              track: (.track // ""),
+              album: (.album // "")
+            }' "$info_file" > "downloads/soundcloud/${base_name}.json"
+
+            echo "Created metadata: downloads/soundcloud/${base_name}.json"
+          done
+
+      - name: Cleanup temp files
+        run: |
+          # Remove info.json and unnecessary thumbnail files
+          rm -f downloads/soundcloud/*.info.json
+          rm -f downloads/soundcloud/*.webp downloads/soundcloud/*.png
+
+      - name: Split large files
+        run: |
+          # Split files >100MB into zip chunks
+          MAX_SIZE=$((100 * 1024 * 1024))  # 100MB
+          CHUNK_SIZE=$((90 * 1024 * 1024))  # 90MB
+
+          cd downloads/soundcloud
+          for file in *; do
+            if [ -f "$file" ]; then
+              size=$(stat -c%s "$file" 2>/dev/null || stat -f%z "$file" 2>/dev/null || echo 0)
+              if [ "$size" -gt "$MAX_SIZE" ]; then
+                echo "Splitting and zipping large file: $file ($(numfmt --to=iec-i --suffix=B $size 2>/dev/null || echo $size bytes))"
+
+                # Split file into chunks first
+                base="${file%.*}"
+                ext="${file##*.}"
+                split -b "$CHUNK_SIZE" -d -a 2 "$file" "${base}part"
+
+                # Zip each chunk individually
+                part_num=1
+                for part in "${base}part"*; do
+                  if [ -f "$part" ]; then
+                    zip -q "${base}part$(printf '%02d' $part_num).zip" "$part"
+                    rm -f "$part"
+                    part_num=$((part_num + 1))
+                  fi
+                done
+
+                # Count parts
+                part_count=$(ls -1 "${base}part"*.zip 2>/dev/null | wc -l)
+
+                # Remove original file
+                rm -f "$file"
+
+                # Update metadata
+                if [ -f "${base}.json" ]; then
+                  python3 -c "import json,sys; f=open(sys.argv[1],'r'); d=json.load(f); f.close(); d['split']=True; d['zip']=True; d['parts']=int(sys.argv[2]); d['original_size']=int(sys.argv[3]); d['ext']=sys.argv[4]; f=open(sys.argv[1],'w'); json.dump(d,f,indent=2); f.close()" "${base}.json" "$part_count" "$size" "$ext"
+                fi
+
+                echo "Split and zipped into $part_count parts"
+              fi
+            fi
+          done
+          cd ../..
+
+      - name: Commit and push
+        run: |
+          set -e
+          git config user.name "mown Downloader"
+          git config user.email "mown@system.local"
+
+          git add downloads/soundcloud/
+
+          if git diff --cached --quiet; then
+            echo "No changes to commit"
+          else
+            git commit -m "mown: Download SoundCloud $(date -u +'%Y-%m-%d %H:%M:%S UTC')"
+            git pull --rebase origin main
+            git push
+            echo "Committed and pushed"
+          fi
+
+      - name: Upload artifact
+        if: success()
+        uses: actions/upload-artifact@v4
+        with:
+          name: download
+          path: downloads/soundcloud/
+          retention-days: 1
+
+      - name: Cleanup old downloads
+        if: always()
+        run: |
+          set -e
+          # Keep only last 50 files to prevent repo bloat
+          cd downloads/soundcloud 2>/dev/null || exit 0
+
+          # Count audio files safely
+          AUDIO_COUNT=$(find . -maxdepth 1 \( -name "*.mp3" -o -name "*.wav" -o -name "*.flac" -o -name "*.ogg" \) -type f 2>/dev/null | wc -l)
+
+          if [ "$AUDIO_COUNT" -gt 50 ]; then
+            echo "Too many files ($AUDIO_COUNT), cleaning up old ones..."
+            # List files by modification time, skip the 50 newest
+            find . -maxdepth 1 \( -name "*.mp3" -o -name "*.wav" -o -name "*.flac" -o -name "*.ogg" \) -type f -printf '%T@ %p\n' 2>/dev/null | \
+              sort -rn | tail -n +51 | cut -d' ' -f2- | while read file; do
+              echo "Removing old file: $file"
+              rm -f "$file"
+              # Also remove associated metadata
+              base="${file%.*}"
+              rm -f "${base}.json"
+              rm -f "${base}.jpg"
+            done
+
+            # Commit cleanup
+            cd ../..
+            git add -A
+            git commit -m "mown: Auto cleanup old SoundCloud files" || true
+            git push || true
+          fi

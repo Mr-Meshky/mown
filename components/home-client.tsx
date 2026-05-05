@@ -9,6 +9,7 @@ import {
   Globe,
   HardDrive,
   Loader2,
+  Music,
   Settings2,
   Upload,
   Youtube,
@@ -30,10 +31,12 @@ const defaultDownloadType: Record<InputType, DownloadType> = {
   youtube: 'video',
   direct: 'raw',
   snapshot: 'webpage',
+  soundcloud: 'audio',
 }
 
 const inputTabs: Array<{ key: InputType; icon: React.ElementType; activeColor: string }> = [
   { key: 'youtube', icon: Youtube, activeColor: 'text-red-500' },
+  { key: 'soundcloud', icon: Music, activeColor: 'text-orange-500' },
   { key: 'direct', icon: HardDrive, activeColor: 'text-blue-400' },
   { key: 'snapshot', icon: Globe, activeColor: 'text-green-500' },
 ]

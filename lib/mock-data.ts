@@ -1,6 +1,6 @@
 export type JobStatus = 'queued' | 'in_progress' | 'completed' | 'failed' | 'running'
 export type DownloadType = 'video' | 'audio' | 'webpage' | 'raw' | string
-export type InputType = 'youtube' | 'direct' | 'snapshot'
+export type InputType = 'youtube' | 'direct' | 'snapshot' | 'soundcloud'
 
 export interface Job {
   id: string

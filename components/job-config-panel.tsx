@@ -43,7 +43,7 @@ const downloadTypes: {
     label: 'Audio',
     description: 'MP3',
     icon: FileAudio,
-    compatibleWith: ['youtube'],
+    compatibleWith: ['youtube', 'soundcloud'],
   },
   {
     type: 'webpage',
@@ -61,17 +61,8 @@ const downloadTypes: {
   },
 ]
 
-const qualityOptions = ['2160p', '1440p', '1080p', '720p', '480p', '360p', 'best']
-
-const qualityKeyMap: Record<string, string> = {
-  '2160p': '2160',
-  '1440p': '1440',
-  '1080p': '1080',
-  '720p': '720',
-  '480p': '480',
-  '360p': '360',
-  best: 'best',
-}
+const youtubeQualityOptions = ['2160p', '1440p', '1080p', '720p', '480p', '360p', 'best']
+const soundcloudQualityOptions = ['320k', '256k', '192k', '128k', 'best']
 
 const typeKeyMap: Record<string, string> = {
   video: 'video',
@@ -128,8 +119,8 @@ export function JobConfigPanel({
         </div>
       </div>
 
-      {/* Quality selector (YouTube video/audio only) */}
-      {(downloadType === 'video' || downloadType === 'audio') && inputType === 'youtube' && (
+      {/* Quality selector (YouTube and SoundCloud) */}
+      {(downloadType === 'video' || downloadType === 'audio') && (inputType === 'youtube' || inputType === 'soundcloud') && (
         <div className="space-y-1.5">
           <Label htmlFor="quality" className="text-muted-foreground text-sm">
             {t('quality.label')}
@@ -139,9 +130,9 @@ export function JobConfigPanel({
               <SelectValue placeholder={t('quality.label')} />
             </SelectTrigger>
             <SelectContent>
-              {qualityOptions.map(q => (
+              {(inputType === 'soundcloud' ? soundcloudQualityOptions : youtubeQualityOptions).map(q => (
                 <SelectItem key={q} value={q}>
-                  {t(`quality.${qualityKeyMap[q] || q}`)}
+                  {t(`quality.${q}`)}
                 </SelectItem>
               ))}
             </SelectContent>

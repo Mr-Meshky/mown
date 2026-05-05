@@ -10,6 +10,7 @@ import { useTranslations } from 'next-intl'
 import { LanguageSwitcher } from '@/components/language-switcher'
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip'
 import { useReopenOnboarding } from '@/components/onboarding-wizard'
+import Image from 'next/image'
 
 const navLinks = [
   { href: '/', key: 'newJob' as const, icon: Download },
@@ -28,9 +29,7 @@ export function Navbar() {
       <div className="mx-auto flex h-13 max-w-4xl items-center justify-between px-4">
         {/* Logo */}
         <Link href="/" className="flex items-center gap-2">
-          <div className="bg-primary flex h-7 w-7 items-center justify-center rounded-md">
-            <Zap className="text-primary-foreground h-3.5 w-3.5" fill="currentColor" />
-          </div>
+          <Image src="/logo.png" alt="Mown" width={20} height={20} />
           <span className="text-foreground font-semibold tracking-tight">Mown</span>
           <span className="bg-secondary text-muted-foreground rounded px-1.5 py-0.5 text-[10px] font-medium tracking-wider uppercase">
             beta

@@ -1,9 +1,14 @@
 import { Octokit } from '@octokit/rest'
 import sodium from 'libsodium-wrappers'
 import AdmZip from 'adm-zip'
-import { YOUTUBE_WORKFLOW, DIRECT_WORKFLOW, SNAPSHOT_WORKFLOW } from './workflows'
+import {
+  YOUTUBE_WORKFLOW,
+  DIRECT_WORKFLOW,
+  SNAPSHOT_WORKFLOW,
+  SOUNDCLOUD_WORKFLOW,
+} from './workflows'
 
-export type JobType = 'youtube' | 'direct' | 'snapshot'
+export type JobType = 'youtube' | 'direct' | 'snapshot' | 'soundcloud'
 
 export type RunStatus = {
   status: 'queued' | 'in_progress' | 'completed'
@@ -15,6 +20,7 @@ const WORKFLOWS: Record<JobType, { filename: string; content: string }> = {
   youtube: { filename: 'youtube-download.yml', content: YOUTUBE_WORKFLOW },
   direct: { filename: 'direct-download.yml', content: DIRECT_WORKFLOW },
   snapshot: { filename: 'snapshot.yml', content: SNAPSHOT_WORKFLOW },
+  soundcloud: { filename: 'soundcloud-download.yml', content: SOUNDCLOUD_WORKFLOW },
 }
 
 function getOctokit(token: string) {

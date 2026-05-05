@@ -7,6 +7,7 @@ const WORKFLOW_MAP: Record<string, string> = {
   youtube: 'youtube-download.yml',
   direct: 'direct-download.yml',
   snapshot: 'snapshot.yml',
+  soundcloud: 'soundcloud-download.yml',
 }
 
 export async function POST(request: NextRequest) {

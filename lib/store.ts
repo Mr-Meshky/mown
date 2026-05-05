@@ -1,4 +1,4 @@
-export type JobType = 'youtube' | 'direct' | 'snapshot'
+export type JobType = 'youtube' | 'direct' | 'snapshot' | 'soundcloud'
 export type JobStatus = 'queued' | 'in_progress' | 'completed' | 'failed'
 export type DownloadType = 'video' | 'audio' | 'webpage' | 'raw' | string
 export type InputType = 'youtube' | 'direct' | 'snapshot'
