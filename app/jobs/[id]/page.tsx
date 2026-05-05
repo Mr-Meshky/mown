@@ -1,14 +1,15 @@
 'use client'
 
-import { useEffect, useState } from 'react'
+import { ChevronLeft, History, Plus } from 'lucide-react'
 import Link from 'next/link'
 import { useParams, useRouter } from 'next/navigation'
-import { ChevronLeft, History, Plus } from 'lucide-react'
-import { Navbar } from '@/components/navbar'
+import { useTranslations } from 'next-intl'
+import { useEffect, useState } from 'react'
+
 import { JobStatusCard } from '@/components/job-status-card'
+import { Navbar } from '@/components/navbar'
 import { Button } from '@/components/ui/button'
 import { getJobByRunId, type Job as StoreJob } from '@/lib/store'
-import { useTranslations } from 'next-intl'
 
 export default function JobPage() {
   const params = useParams()

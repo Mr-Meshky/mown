@@ -1,13 +1,14 @@
 'use client'
 
-import { useState } from 'react'
+import { FileArchive, Loader2, Merge, Trash2, Upload } from 'lucide-react'
 import { useRouter } from 'next/navigation'
-import { Upload, FileArchive, Loader2, Merge, Download, Trash2 } from 'lucide-react'
+import { useTranslations } from 'next-intl'
+import { useState } from 'react'
+import { toast } from 'sonner'
+
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Progress } from '@/components/ui/progress'
-import { toast } from 'sonner'
-import { useTranslations } from 'next-intl'
 import { cn } from '@/lib/utils'
 
 export default function MergePage() {
@@ -28,7 +29,7 @@ export default function MergePage() {
     }
 
     setFiles(prev => [...prev, ...zipFiles])
-    toast.success(t('filesAdded').replace('{count}', zipFiles.length.toString()))
+    toast.success(t('filesAdded', { count: String(zipFiles.length) }))
   }
 
   function removeFile(index: number) {
@@ -73,7 +74,8 @@ export default function MergePage() {
 
       // Download the result
       const blob = await res.blob()
-      const filename = res.headers.get('Content-Disposition')?.match(/filename="?([^"]+)"?/)?.[1] || 'merged.zip'
+      const filename =
+        res.headers.get('Content-Disposition')?.match(/filename="?([^"]+)"?/)?.[1] || 'merged.zip'
       const url = URL.createObjectURL(blob)
       const a = document.createElement('a')
       a.href = url
@@ -137,7 +139,7 @@ export default function MergePage() {
             <div className="space-y-2">
               <div className="flex items-center justify-between">
                 <span className="text-sm font-medium">
-                  {t('filesSelected').replace('{count}', files.length.toString())}
+                  {t('filesSelected', { count: String(files.length) })}
                 </span>
                 <Button
                   type="button"
@@ -205,12 +207,7 @@ export default function MergePage() {
           </Button>
 
           {/* Back button */}
-          <Button
-            type="button"
-            variant="ghost"
-            onClick={() => router.push('/')}
-            className="w-full"
-          >
+          <Button type="button" variant="ghost" onClick={() => router.push('/')} className="w-full">
             {t('back')}
           </Button>
         </CardContent>

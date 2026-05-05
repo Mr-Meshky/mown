@@ -1,7 +1,8 @@
+import { useTranslations } from 'next-intl'
+
 import { HomeClient } from '@/components/home-client'
 import { Navbar } from '@/components/navbar'
 import { OnboardingWizard } from '@/components/onboarding-wizard'
-import { useTranslations } from 'next-intl'
 
 export default function HomePage() {
   const t = useTranslations('home')

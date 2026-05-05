@@ -1,29 +1,19 @@
 'use client'
 
-import { useEffect, useRef, useState } from 'react'
-import {
-  CheckCircle2,
-  Clock,
-  Download,
-  ExternalLink,
-  FileAudio,
-  FileVideo,
-  Globe,
-  HardDrive,
-  Loader2,
-  RefreshCw,
-  XCircle,
-} from 'lucide-react'
+import { Download, ExternalLink, RefreshCw } from 'lucide-react'
 import { useRouter } from 'next/navigation'
-import { Card, CardContent } from '@/components/ui/card'
+import { useTranslations } from 'next-intl'
+import { useEffect, useRef, useState } from 'react'
+
+import { JobStatusBadge } from '@/components/job-status-badge'
 import { Button } from '@/components/ui/button'
+import { Card, CardContent } from '@/components/ui/card'
 import { ScrollArea } from '@/components/ui/scroll-area'
 import { Separator } from '@/components/ui/separator'
-import { JobStatusBadge } from '@/components/job-status-badge'
-import { updateJob, getSettings } from '@/lib/store'
-import { getDownloadTypeFolder } from '@/lib/utils'
-import { useTranslations } from 'next-intl'
-import { cn } from '@/lib/utils'
+import { getSettings, updateJob } from '@/lib/store'
+import { cn, getDownloadTypeFolder } from '@/lib/utils'
+import { formatDate, formatFileSize, TYPE_ICONS } from '@/lib/constants'
+import { usePolling } from '@/hooks/use-polling'
 
 interface JobStatusCardProps {
   job: {
@@ -40,21 +30,9 @@ interface JobStatusCardProps {
   runId?: number
 }
 
-const typeIcons: Record<string, React.ElementType> = {
-  video: FileVideo,
-  audio: FileAudio,
-  webpage: Globe,
-  raw: HardDrive,
-}
+const typeIcons = TYPE_ICONS
 
 function formatDate(iso: string) {
-  return new Date(iso).toLocaleString(undefined, {
-    month: 'short',
-    day: 'numeric',
-    hour: '2-digit',
-    minute: '2-digit',
-  })
-}
 
 type PipelineStatus = 'queued' | 'running' | 'completed' | 'failed'
 
@@ -159,7 +137,7 @@ export function JobStatusCard({ job, runId }: JobStatusCardProps) {
               : 'queued'
 
         setStatus(newStatus)
-        updateJob(effectiveRunId, { status: newStatus } as any)
+        updateJob(effectiveRunId, { status: newStatus } as Parameters<typeof updateJob>[1])
 
         if (newStatus === 'completed' && !commitFetchedRef.current) {
           commitFetchedRef.current = true
@@ -167,10 +145,10 @@ export function JobStatusCard({ job, runId }: JobStatusCardProps) {
           fetch(
             `/api/github/commit?token=${settings.token}&owner=${settings.owner}&repo=${settings.repo}&path=${encodeURIComponent(folder)}`
           )
-            .then(r => r.json())
-            .then(({ sha }: { sha: string | null }) => {
-              if (sha) updateJob(effectiveRunId, { commitSha: sha } as any)
-            })
+              .then((r: Response) => r.json() as Promise<{ sha: string | null }>)
+              .then(({ sha }) => {
+                if (sha) updateJob(effectiveRunId, { commitSha: sha } as Parameters<typeof updateJob>[1])
+              })
             .catch(() => {})
         }
       } catch {

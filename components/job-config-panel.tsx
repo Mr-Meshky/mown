@@ -1,6 +1,8 @@
 'use client'
 
 import { FileAudio, FileVideo, Globe, HardDrive } from 'lucide-react'
+import { useTranslations } from 'next-intl'
+
 import { Label } from '@/components/ui/label'
 import {
   Select,
@@ -9,9 +11,8 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select'
-import { cn } from '@/lib/utils'
 import type { DownloadType, InputType } from '@/lib/mock-data'
-import { useTranslations } from 'next-intl'
+import { cn } from '@/lib/utils'
 
 interface JobConfigPanelProps {
   inputType: InputType
@@ -76,8 +77,6 @@ export function JobConfigPanel({
   onDownloadTypeChange,
   quality,
   onQualityChange,
-  filename,
-  onFilenameChange,
 }: JobConfigPanelProps) {
   const t = useTranslations('jobConfig')
 
@@ -109,7 +108,9 @@ export function JobConfigPanel({
               >
                 <Icon className={cn('h-4 w-4 shrink-0', selected ? 'text-primary' : '')} />
                 <div className="min-w-0">
-                  <p className="truncate text-xs font-medium">{t(`type.${typeKey}`)}</p>
+                  <p className="truncate text-xs font-medium">
+                    {t(`type.${typeKey}` as Parameters<typeof t>[0])}
+                  </p>
                   <p className="text-[10px] opacity-60">{description}</p>
                 </div>
               </button>
@@ -135,7 +136,7 @@ export function JobConfigPanel({
                   : youtubeQualityOptions
                 ).map(q => (
                   <SelectItem key={q} value={q}>
-                    {t(`quality.${q}`)}
+                    {t(`quality.${q}` as Parameters<typeof t>[0])}
                   </SelectItem>
                 ))}
               </SelectContent>

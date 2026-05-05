@@ -26,16 +26,19 @@
       "@/*": [
         "./*"
       ]
-    }
+    },
+    "allowArbitraryExtensions": true
   },
   "include": [
     "next-env.d.ts",
     "**/*.ts",
     "**/*.tsx",
     ".next/types/**/*.ts",
-    ".next/dev/types/**/*.ts"
+    ".next/dev/types/**/*.ts",
+    "types/**/*.ts"
   ],
   "exclude": [
-    "node_modules"
+    "node_modules",
+    "messages/*.d.json.ts"
   ]
 }

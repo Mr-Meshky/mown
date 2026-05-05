@@ -1,11 +1,12 @@
 'use client'
 
-import { useState } from 'react'
 import { Eye, EyeOff, KeyRound } from 'lucide-react'
-import { Input } from '@/components/ui/input'
-import { Button } from '@/components/ui/button'
-import { Label } from '@/components/ui/label'
 import { useTranslations } from 'next-intl'
+import { useState } from 'react'
+
+import { Button } from '@/components/ui/button'
+import { Input } from '@/components/ui/input'
+import { Label } from '@/components/ui/label'
 
 interface TokenInputProps {
   value: string

@@ -1,4 +1,4 @@
-import { NextRequest, NextResponse } from 'next/server'
+import { type NextRequest, NextResponse } from 'next/server'
 
 export async function GET(request: NextRequest) {
   try {
@@ -11,16 +11,13 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ error: 'Missing required query parameters' }, { status: 400 })
     }
 
-    const res = await fetch(
-      `https://api.github.com/repos/${owner}/${repo}/contents/history.json`,
-      {
-        headers: {
-          Authorization: `Bearer ${token}`,
-          'X-GitHub-Api-Version': '2022-11-28',
-          Accept: 'application/vnd.github+json',
-        },
-      }
-    )
+    const res = await fetch(`https://api.github.com/repos/${owner}/${repo}/contents/history.json`, {
+      headers: {
+        Authorization: `Bearer ${token}`,
+        'X-GitHub-Api-Version': '2022-11-28',
+        Accept: 'application/vnd.github+json',
+      },
+    })
 
     if (!res.ok) {
       if (res.status === 404) {

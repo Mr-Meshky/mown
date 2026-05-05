@@ -1,31 +1,27 @@
 'use client'
 
-import { useEffect, useState } from 'react'
-import Link from 'next/link'
 import {
+  AlertCircle,
+  ArrowLeft,
   Download,
   ExternalLink,
-  FileAudio,
   FileVideo,
   Globe,
   HardDrive,
-  Image,
-  Loader2,
-  RefreshCw,
-  ArrowLeft,
-  Trash2,
-  Play,
   Music,
-  FileText,
-  AlertCircle,
+  Play,
+  RefreshCw,
 } from 'lucide-react'
+import Link from 'next/link'
+import { useTranslations } from 'next-intl'
+import { useEffect, useState } from 'react'
+
 import { Navbar } from '@/components/navbar'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent } from '@/components/ui/card'
 import { Skeleton } from '@/components/ui/skeleton'
-import { useTranslations } from 'next-intl'
-import { cn } from '@/lib/utils'
 import { getSettings } from '@/lib/store'
+import { cn } from '@/lib/utils'
 
 interface HistoryItem {
   id: string
@@ -335,7 +331,7 @@ export default function SyncHistoryPage() {
         ) : (
           <div className="space-y-4">
             <p className="text-muted-foreground text-sm">
-              {t('filesFound', { count: history.length })}
+              {t('filesFound', { count: String(history.length) })}
             </p>
             {history.map(item => (
               <HistoryCard

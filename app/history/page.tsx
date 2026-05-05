@@ -1,6 +1,5 @@
 'use client'
 
-import Link from 'next/link'
 import {
   ArrowLeft,
   CheckCircle2,
@@ -18,16 +17,17 @@ import {
   RefreshCw,
   XCircle,
 } from 'lucide-react'
+import Link from 'next/link'
+import { useLocale, useTranslations } from 'next-intl'
 import { useEffect, useState } from 'react'
-import { Navbar } from '@/components/navbar'
+
 import { JobStatusBadge } from '@/components/job-status-badge'
+import { Navbar } from '@/components/navbar'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent } from '@/components/ui/card'
-import { getJobs } from '@/lib/store'
 import type { Job as StoreJob } from '@/lib/store'
-import { getJobFolder } from '@/lib/utils'
-import { useTranslations, useLocale } from 'next-intl'
-import { cn } from '@/lib/utils'
+import { getJobs } from '@/lib/store'
+import { cn, getJobFolder } from '@/lib/utils'
 
 const typeIcons: Record<string, React.ElementType> = {
   video: FileVideo,

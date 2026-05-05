@@ -1,7 +1,14 @@
 import createNextIntlPlugin from 'next-intl/plugin'
-const withNextIntl = createNextIntlPlugin('./i18n/request.ts')
+
+const withNextIntl = createNextIntlPlugin({
+  requestConfig: './i18n/request.ts',
+  experimental: {
+    createMessagesDeclaration: './messages/en.json',
+  },
+})
+
 const nextConfig = {
-  output: 'standalone',
+  output: 'standalone' as const,
   typescript: {
     ignoreBuildErrors: true,
   },
@@ -9,4 +16,5 @@ const nextConfig = {
     unoptimized: true,
   },
 }
+
 export default withNextIntl(nextConfig)

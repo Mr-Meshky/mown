@@ -1,8 +1,9 @@
 'use client'
 
-import { useTransition } from 'react'
 import { useRouter } from 'next/navigation'
 import { useLocale } from 'next-intl'
+import { useTransition } from 'react'
+
 import { Button } from '@/components/ui/button'
 import { cn } from '@/lib/utils'
 

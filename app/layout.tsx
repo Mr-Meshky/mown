@@ -1,22 +1,17 @@
 import type { Metadata, Viewport } from 'next'
-import { Geist_Mono } from 'next/font/google'
 import { NextIntlClientProvider } from 'next-intl'
+import { getLocale } from 'next-intl/server'
+
 import { ThemeProvider } from '@/components/theme-provider'
 import { Toaster } from '@/components/ui/sonner'
-import { getLocale } from 'next-intl/server'
+import { geist } from '@/lib/fonts/geist'
+import { peyda } from '@/lib/fonts/peyda'
 import './globals.css'
-import { peyda } from '@/lib/peyda'
-
-const geistMono = Geist_Mono({
-  subsets: ['latin'],
-  variable: '--font-geist-mono',
-  display: 'swap',
-})
 
 export const metadata: Metadata = {
   title: 'موان (Mown) — دانلود یوتیوب با گیت‌هاب',
   description:
-    'دانلود ویدیوهای یوتیوب بدون نیاز به VPN با استفاده از زیرساخت گیت‌هاب. رابط کاربری ساده و سرعت بالا.',
+    'موان برای دانلود ویدیوهای یوتیوب بدون نیاز به VPN با استفاده از زیرساخت گیت‌هاب. رابط کاربری ساده و سرعت بالا.',
   icons: {
     icon: [{ url: '/logo.png', type: 'image/png' }],
     apple: '/apple-icon.png',
@@ -43,7 +38,7 @@ export default async function RootLayout({
 
   return (
     <html lang={locale} dir={dir} className="bg-background" suppressHydrationWarning>
-      <body className={`${peyda.variable} ${geistMono.variable} font-sans antialiased`}>
+      <body className={`${peyda.variable} ${geist.variable} font-sans antialiased`}>
         <NextIntlClientProvider>
           <ThemeProvider attribute="class" defaultTheme="light" enableSystem>
             {children}

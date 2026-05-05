@@ -1,10 +1,10 @@
 appId: com.mrmeshky.mown
 productName: Mown
-copyright: "Copyright © 2024 MrMeshky"
+copyright: 'Copyright © 2024 MrMeshky'
 
 asar: true
 asarUnpack:
-  - "**/*.node"
+  - '**/*.node'
 
 # No native modules need rebuilding — all deps are pure JS/WASM
 npmRebuild: false
@@ -17,30 +17,30 @@ directories:
 # Main process files
 files:
   - electron/dist/**/*
-  - "!electron/src"
-  - "!electron/tsconfig.json"
+  - '!electron/src'
+  - '!electron/tsconfig.json'
 
 # Bundle the Next.js standalone server into resources/app/
 extraResources:
   - from: .next/standalone
     to: app
     filter:
-      - "**/*"
-      - "!**/*.map"
-      - "!**/*.md"
-      - "!**/CHANGELOG*"
-      - "!**/LICENSE*"
-      - "!**/*.ts"
-      - "!**/node_modules/.cache/**"
-      - "!**/node_modules/next/dist/compiled/jest-worker/**"
-      - "!**/node_modules/next/dist/compiled/webpack/**"
-      - "!**/node_modules/next/dist/compiled/css-loader/**"
-      - "!**/node_modules/next/dist/compiled/postcss/**"
-      - "!**/node_modules/next/dist/compiled/babel/**"
-      - "!**/node_modules/next/dist/compiled/eslint/**"
-      - "!**/node_modules/next/dist/compiled/styled-jsx/**"
-      - "!**/node_modules/next/dist/build/**"
-      - "!**/node_modules/next/dist/cli/**"
+      - '**/*'
+      - '!**/*.map'
+      - '!**/*.md'
+      - '!**/CHANGELOG*'
+      - '!**/LICENSE*'
+      - '!**/*.ts'
+      - '!**/node_modules/.cache/**'
+      - '!**/node_modules/next/dist/compiled/jest-worker/**'
+      - '!**/node_modules/next/dist/compiled/webpack/**'
+      - '!**/node_modules/next/dist/compiled/css-loader/**'
+      - '!**/node_modules/next/dist/compiled/postcss/**'
+      - '!**/node_modules/next/dist/compiled/babel/**'
+      - '!**/node_modules/next/dist/compiled/eslint/**'
+      - '!**/node_modules/next/dist/compiled/styled-jsx/**'
+      - '!**/node_modules/next/dist/build/**'
+      - '!**/node_modules/next/dist/cli/**'
 
 # macOS
 mac:

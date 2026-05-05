@@ -1,9 +1,11 @@
 {
-  "plugins": ["prettier-plugin-tailwindcss"],
+  "plugins": ["prettier-plugin-tailwindcss", "prettier-plugin-organize-imports"],
   "semi": false,
   "singleQuote": true,
   "tabWidth": 2,
   "trailingComma": "es5",
   "printWidth": 100,
-  "arrowParens": "avoid"
+  "arrowParens": "avoid",
+  "bracketSpacing": true,
+  "endOfLine": "lf"
 }

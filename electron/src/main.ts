@@ -1,7 +1,7 @@
-import { app, BrowserWindow, shell, Menu, nativeTheme } from 'electron'
-import { spawn, ChildProcess } from 'child_process'
-import * as path from 'path'
+import { spawn, type ChildProcess } from 'child_process'
+import { app, BrowserWindow, Menu, nativeTheme, shell } from 'electron'
 import * as net from 'net'
+import * as path from 'path'
 
 const isDev = process.env.NODE_ENV === 'development'
 const PORT = 39871
@@ -17,7 +17,9 @@ function findFreePort(startPort: number): Promise<number> {
       server.close(() => resolve(port))
     })
     server.on('error', () => {
-      findFreePort(startPort + 1).then(resolve).catch(reject)
+      findFreePort(startPort + 1)
+        .then(resolve)
+        .catch(reject)
     })
   })
 }
@@ -66,7 +68,7 @@ async function startNextServer(port: number): Promise<void> {
     console.error('[server]', d.toString().trim())
   })
 
-  serverProcess.on('error', (err) => {
+  serverProcess.on('error', err => {
     console.error('Failed to start Next.js server:', err)
   })
 }

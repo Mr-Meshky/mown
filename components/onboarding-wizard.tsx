@@ -1,11 +1,5 @@
 'use client'
 
-import { useState, useEffect } from 'react'
-import { useTranslations } from 'next-intl'
-import { Dialog, DialogContent, DialogTitle } from '@/components/ui/dialog'
-import { Button } from '@/components/ui/button'
-import { Input } from '@/components/ui/input'
-import { Label } from '@/components/ui/label'
 import {
   Camera,
   CheckCircle2,
@@ -14,16 +8,23 @@ import {
   Download,
   Eye,
   EyeOff,
-  Github,
   GitFork,
+  Github,
   KeyRound,
   Link2,
   Loader2,
   Sparkles,
   Youtube,
 } from 'lucide-react'
-import { saveSettings, getSettings } from '@/lib/store'
+import { useTranslations } from 'next-intl'
+import { useEffect, useState } from 'react'
 import { toast } from 'sonner'
+
+import { Button } from '@/components/ui/button'
+import { Dialog, DialogContent, DialogTitle } from '@/components/ui/dialog'
+import { Input } from '@/components/ui/input'
+import { Label } from '@/components/ui/label'
+import { getSettings, saveSettings } from '@/lib/store'
 import { cn } from '@/lib/utils'
 
 const ONBOARDING_KEY = 'mown_onboarding_done'
@@ -363,7 +364,7 @@ export function OnboardingWizard() {
   const [repoError, setRepoError] = useState('')
   const [initializing, setInitializing] = useState(false)
   const [initialized, setInitialized] = useState(false)
-  const [step3Skipped, setStep3Skipped] = useState(false)
+  const [, setStep3Skipped] = useState(false)
 
   useEffect(() => {
     const s = getSettings()
@@ -431,7 +432,7 @@ export function OnboardingWizard() {
     }
   }
 
-  const progressPct = ((step + 1) / TOTAL) * 100
+  const _progressPct = ((step + 1) / TOTAL) * 100
 
   return (
     <Dialog open={open} onOpenChange={setOpen}>
@@ -446,7 +447,7 @@ export function OnboardingWizard() {
         <div className="border-border border-b px-6 pt-5 pb-4">
           <div className="mb-2.5 flex items-center justify-between ps-2.5">
             <span className="text-muted-foreground text-xs">
-              {t('step', { current: step + 1, total: TOTAL })}
+              {t('step', { current: String(step + 1), total: String(TOTAL) })}
             </span>
             {step < TOTAL - 1 && (
               <button

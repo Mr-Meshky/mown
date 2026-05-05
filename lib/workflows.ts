@@ -1,11 +1,11 @@
 import { readFileSync } from 'fs'
-import { resolve, dirname } from 'path'
 import { fileURLToPath } from 'node:url'
+import { dirname, resolve } from 'path'
 
-const __dirname = dirname(fileURLToPath(import.meta.url))
+const _dirname = dirname(fileURLToPath(import.meta.url))
 
 function loadWorkflow(filename: string): string {
-  const filePath = resolve(__dirname, filename)
+  const filePath = resolve(_dirname, filename)
   return readFileSync(filePath, 'utf-8')
 }
 

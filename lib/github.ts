@@ -1,11 +1,12 @@
 import { Octokit } from '@octokit/rest'
-import sodium from 'libsodium-wrappers'
 import AdmZip from 'adm-zip'
+import sodium from 'libsodium-wrappers'
+
 import {
-  YOUTUBE_WORKFLOW,
   DIRECT_WORKFLOW,
   SNAPSHOT_WORKFLOW,
   SOUNDCLOUD_WORKFLOW,
+  YOUTUBE_WORKFLOW,
 } from './workflows'
 
 export type JobType = 'youtube' | 'direct' | 'snapshot' | 'soundcloud'

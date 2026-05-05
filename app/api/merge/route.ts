@@ -1,8 +1,5 @@
-import { NextRequest, NextResponse } from 'next/server'
 import AdmZip from 'adm-zip'
-import { writeFileSync, unlinkSync, readFileSync, mkdirSync, rmSync } from 'fs'
-import { join } from 'path'
-import { tmpdir } from 'os'
+import { type NextRequest, NextResponse } from 'next/server'
 
 export async function POST(request: NextRequest) {
   try {
@@ -60,10 +57,13 @@ export async function POST(request: NextRequest) {
     for (const [key, partBuffers] of groups) {
       // Sort buffers by their original part name
       // We need to maintain the order from allParts
-      const sortedBuffers = partBuffers.map((buf, idx) => {
-        const partIndex = allParts.findIndex(p => p.data === buf)
-        return { buf, index: partIndex }
-      }).sort((a, b) => a.index - b.index).map(item => item.buf)
+      const sortedBuffers = partBuffers
+        .map((buf, _idx) => {
+          const partIndex = allParts.findIndex(p => p.data === buf)
+          return { buf, index: partIndex }
+        })
+        .sort((a, b) => a.index - b.index)
+        .map(item => item.buf)
 
       // Concatenate all parts
       const totalLength = sortedBuffers.reduce((sum, buf) => sum + buf.length, 0)

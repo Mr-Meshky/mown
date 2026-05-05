@@ -4,229 +4,104 @@ on:
   workflow_dispatch:
     inputs:
       url:
-        description: 'Website URL to mirror'
+        description: 'URL to snapshot'
         required: true
-        type: string
-      filename:
-        description: 'Output directory name'
-        default: 'snapshot'
-        type: string
-
-permissions:
-  contents: read
-  actions: write
+        default: 'https://example.com'
 
 jobs:
   snapshot:
+    name: Snapshot
     runs-on: ubuntu-latest
     permissions:
       contents: write
 
     steps:
-      - name: Checkout repository
+      - name: Checkout
         uses: actions/checkout@v4
-        with:
-          token: ${{ secrets.GITHUB_TOKEN }}
 
-      - name: Create downloads directory
-        run: mkdir -p downloads/snapshot
+      - name: Resolve output directory
+        id: resolve
+        run: |
+          DOMAIN=$(echo "${{ inputs.url }}" | sed -E 's|https?://||' | sed -E 's|/.*||')
+          DATE=$(date +%Y-%m-%d)
+          DIR_NAME="${DATE}_${DOMAIN}"
+          FULL_PATH="downloads/snapshot/${DIR_NAME}"
+
+          echo "domain=$DOMAIN" >> $GITHUB_OUTPUT
+          echo "dir_name=$DIR_NAME" >> $GITHUB_OUTPUT
+          echo "full_path=$FULL_PATH" >> $GITHUB_OUTPUT
+
+          if [ -d "$FULL_PATH" ]; then
+            echo "skip=true" >> $GITHUB_OUTPUT
+            echo "⚠️ Snapshot already exists for $DOMAIN on $DATE — skipping."
+          else
+            echo "skip=false" >> $GITHUB_OUTPUT
+            echo "✅ No snapshot found for $DOMAIN on $DATE — proceeding."
+          fi
 
       - name: Install HTTrack
+        if: steps.resolve.outputs.skip == 'false'
         run: |
-          sudo apt-get update
-          sudo apt-get install -y httrack
-          which httrack
-          httrack --version
+          sudo apt-get update -q
+          sudo apt-get install -y -q httrack
 
-      - name: Mirror website with HTTrack
+      - name: Mirror website
+        if: steps.resolve.outputs.skip == 'false'
         env:
           URL: ${{ inputs.url }}
-          DIR_NAME: ${{ inputs.filename }}
+          FULL_PATH: ${{ steps.resolve.outputs.full_path }}
         run: |
-          echo "Starting website mirror..."
-          echo "URL: $URL"
-          echo "Output directory: downloads/snapshot/$DIR_NAME"
+          mkdir -p "$FULL_PATH"
 
-          # Mirror the website with HTTrack
-          # -rN: max depth N (here depth 3 for reasonable coverage)
-          # -%v: verbose output
-          # -O: output directory
-          # --robots=0: ignore robots.txt
-          # -K: keep original file structure
-          # -C: continue interrupted downloads
-          # --disable-security-limits: bypass some security checks
           httrack "$URL" \
             -r3 \
             -%v \
-            -O "downloads/snapshot/$DIR_NAME" \
+            -O "$FULL_PATH" \
             --robots=0 \
             -K \
-            --max-rate=0 \
-            --saturate=50 \
             -C \
             --disable-security-limits \
-            || echo "HTTrack completed with some errors (some files may be missing)"
+            || true
 
-          echo "Mirror complete"
-          echo "Files saved to: downloads/snapshot/$DIR_NAME"
-          ls -la "downloads/snapshot/$DIR_NAME"
-
-      - name: Create zip archive of mirrored site
-        env:
-          DIR_NAME: ${{ inputs.filename }}
-        run: |
-          # Create a zip archive of the mirrored site for easy download
-          cd downloads/snapshot
-          if [ -d "$DIR_NAME" ]; then
-            zip -r "${DIR_NAME}.zip" "$DIR_NAME"
-            echo "Created archive: downloads/snapshot/${DIR_NAME}.zip"
-            ls -lh "${DIR_NAME}.zip"
-          else
-            echo "ERROR: Mirrored directory not found"
-            exit 1
-          fi
-          cd ../..
-
-      - name: Split large files
-        run: |
-          MAX_SIZE=$((95 * 1024 * 1024))
-          CHUNK_SIZE=$((90 * 1024 * 1024))
-
-          cd downloads/snapshot
-          for file in *; do
-            [ -f "$file" ] || continue
-            size=$(stat -c%s "$file" 2>/dev/null || stat -f%z "$file" 2>/dev/null || echo 0)
-            if [ "$size" -gt "$MAX_SIZE" ]; then
-              echo "Splitting large file: $file ($size bytes)"
-              base="${file%.*}"
-              ext="${file##*.}"
-
-              split -b "$CHUNK_SIZE" -d -a 2 "$file" "${base}part"
-
-              part_num=1
-              for part in "${base}part"*; do
-                [ -f "$part" ] || continue
-                zip -q "${base}part$(printf '%02d' $part_num).zip" "$part"
-                rm -f "$part"
-                part_num=$((part_num + 1))
-              done
-
-              rm -f "$file"
-              echo "Split into $((part_num - 1)) parts"
-            fi
-          done
-          cd ../..
-
-      - name: Update history.json and settings.json
-        env:
-          DIR_NAME: ${{ inputs.filename }}
-        run: |
-          # Create history.json if not exists
-          if [ ! -f history.json ]; then
-            echo "[]" > history.json
-          fi
-
-          # Create settings.json if not exists
-          if [ ! -f settings.json ]; then
-            echo '{"repoName":"${{ github.event.repository.name }}","owner":"${{ github.repository_owner }}","createdAt":"'$(date -u +'%Y-%m-%dT%H:%M:%SZ')'","lastSync":"","workflows":{"youtube":false,"direct":false,"snapshot":true,"soundcloud":false},"totalDownloads":0}' > settings.json
-          fi
-
-          # Get snapshot file info
-          SNAPSHOT_FILE="downloads/snapshot/${DIR_NAME}.zip"
-          if [ -f "$SNAPSHOT_FILE" ]; then
-            FILENAME="${DIR_NAME}.zip"
-            FILE_SIZE=$(stat -c%s "$SNAPSHOT_FILE" 2>/dev/null || stat -f%z "$SNAPSHOT_FILE" 2>/dev/null || echo 0)
-
-            # Add entry to history.json
-            jq --arg id "$(date +%s)-$(random 2>/dev/null || echo $RANDOM)" \
-               --arg filename "$FILENAME" \
-               --arg title "$DIR_NAME" \
-               --arg url "https://github.com/${{ github.repository }}/blob/main/downloads/snapshot/$FILENAME" \
-               --arg downloadUrl "https://raw.githubusercontent.com/${{ github.repository }}/main/downloads/snapshot/$FILENAME" \
-               --arg thumbnail "" \
-               --arg type "snapshot" \
-               --arg quality "" \
-               --arg format "zip" \
-               --arg duration "" \
-               --arg size "$FILE_SIZE" \
-               --arg createdAt "$(date -u +'%Y-%m-%dT%H:%M:%SZ')" \
-               --arg urlInput "${{ inputs.url }}" \
-               '. += [{
-                 id: $id,
-                 filename: $filename,
-                 title: $title,
-                 url: $url,
-                 downloadUrl: $downloadUrl,
-                 thumbnail: $thumbnail,
-                 type: $type,
-                 quality: $quality,
-                 format: $format,
-                 duration: $duration,
-                 size: $size,
-                 createdAt: $createdAt,
-                 urlInput: $urlInput
-               }]' history.json > history.json.tmp && mv history.json.tmp history.json
-
-            # Update settings.json
-            jq '.totalDownloads += 1 | .lastSync = "'$(date -u +'%Y-%m-%dT%H:%M:%SZ')'" | .workflows.snapshot = true' settings.json > settings.json.tmp && mv settings.json.tmp settings.json
-
-            echo "Updated history.json and settings.json with: $FILENAME"
-          fi
+          FILE_COUNT=$(find "$FULL_PATH" -type f | wc -l)
+          echo "📦 Mirrored $FILE_COUNT files to $FULL_PATH"
 
       - name: Commit and push
+        if: steps.resolve.outputs.skip == 'false'
         run: |
-          set -e
-          git config user.name "mown Downloader"
-          git config user.email "mown@system.local"
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
 
-          git add downloads/snapshot/ history.json
-
-          if git diff --cached --quiet; then
-            echo "No changes to commit"
-          else
-            git commit -m "mown: Snapshot $(date -u +'%Y-%m-%d %H:%M:%S UTC')"
-            git pull --rebase origin main
-            git push
-            echo "Committed and pushed"
-          fi
+          git add downloads/snapshot/
+          git commit -m "mown: Snapshot of ${{ steps.resolve.outputs.domain }} (${{ steps.resolve.outputs.dir_name }})" || echo "Nothing to commit"
+          git push || echo "Push failed"
 
       - name: Upload artifact
+        if: steps.resolve.outputs.skip == 'false'
         uses: actions/upload-artifact@v4
         with:
-          name: download
-          path: downloads/snapshot/
-          retention-days: 1
+          name: ${{ steps.resolve.outputs.dir_name }}
+          path: ${{ steps.resolve.outputs.full_path }}
+          retention-days: 7
+          if-no-files-found: warn
 
       - name: Cleanup old snapshots
-        if: always()
+        if: steps.resolve.outputs.skip == 'false'
         run: |
-          set -e
           cd downloads/snapshot 2>/dev/null || exit 0
 
-          # Count snapshot directories and zip files
-          SNAPSHOT_COUNT=$(find . -maxdepth 1 \( -type d -o -name "*.zip" \) | wc -l)
+          SNAPSHOT_COUNT=$(find . -maxdepth 1 -mindepth 1 -type d | wc -l)
+          echo "📁 Total snapshots: $SNAPSHOT_COUNT"
 
           if [ "$SNAPSHOT_COUNT" -gt 20 ]; then
-            echo "Too many snapshots ($SNAPSHOT_COUNT), cleaning up old ones..."
-            # Remove oldest directories
-            find . -maxdepth 1 -type d -printf '%T@ %p\n' 2>/dev/null | \
+            echo "🧹 Cleaning up — keeping 20 most recent..."
+
+            find . -maxdepth 1 -mindepth 1 -type d -printf '%T@ %p\n' | \
               sort -rn | tail -n +21 | cut -d' ' -f2- | while read dir; do
-              if [ -n "$dir" ] && [ "$dir" != "." ]; then
-                echo "Removing old snapshot: $dir"
-                rm -rf "$dir"
-              fi
+              echo "  Removing: $dir"
+              rm -rf "$dir"
             done
 
-            # Remove oldest zip files
-            find . -maxdepth 1 -name "*.zip" -printf '%T@ %p\n' 2>/dev/null | \
-              sort -rn | tail -n +21 | cut -d' ' -f2- | while read file; do
-              if [ -n "$file" ]; then
-                echo "Removing old snapshot: $file"
-                rm -f "$file"
-              fi
-            done
-
-            # Commit cleanup
             cd ../..
             git add -A
             git commit -m "mown: Auto cleanup old snapshots" || true

@@ -1,4 +1,5 @@
-import { NextRequest, NextResponse } from 'next/server'
+import { type NextRequest, NextResponse } from 'next/server'
+
 import { downloadArtifact } from '@/lib/github'
 
 function getMimeType(filename: string): string {

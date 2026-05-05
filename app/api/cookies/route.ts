@@ -1,5 +1,5 @@
-import { NextRequest, NextResponse } from 'next/server'
 import { Octokit } from '@octokit/rest'
+import { type NextRequest, NextResponse } from 'next/server'
 
 export async function POST(request: NextRequest) {
   try {
@@ -18,27 +18,28 @@ export async function POST(request: NextRequest) {
     // Update the YT_COOKIES secret
     // First, get the public key for the repo
     const {
-      data: { key_id, key },
+      data: { key_id: keyId, key },
     } = await octokit.actions.getRepoPublicKey({
       owner,
       repo,
     })
 
     // Encrypt the secret value using libsodium-wrappers
-    const sodium = require('libsodium-wrappers')
+    // eslint-disable-next-line @typescript-eslint/no-require-imports, @typescript-eslint/consistent-type-imports
+    const sodium = require('libsodium-wrappers') as typeof import('libsodium-wrappers')
     await sodium.ready
 
     const binkey = sodium.from_base64(key, sodium.base64_variants.ORIGINAL)
     const binsec = sodium.from_string(cookies || '')
     const encBytes = sodium.crypto_box_seal(binsec, binkey)
-    const encrypted_value = sodium.to_base64(encBytes, sodium.base64_variants.ORIGINAL)
+    const encryptedValue = sodium.to_base64(encBytes, sodium.base64_variants.ORIGINAL)
 
     await octokit.actions.createOrUpdateRepoSecret({
       owner,
       repo,
       secret_name: 'YT_COOKIES',
-      encrypted_value,
-      key_id,
+      encrypted_value: encryptedValue,
+      key_id: keyId,
     })
 
     return NextResponse.json({ success: true })

@@ -46,6 +46,8 @@ pnpm-debug.log*
 
 # TypeScript cache
 tsconfig.tsbuildinfo
+# next-intl generated type declarations
+messages/*.d.json.ts
 # Electron build output
 dist-electron/
 electron/dist/

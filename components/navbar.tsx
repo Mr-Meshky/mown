@@ -1,16 +1,17 @@
 'use client'
 
+import { BookOpen, Download, History, Moon, Sun, Zap } from 'lucide-react'
+import Image from 'next/image'
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
-import { BookOpen, Download, History, Moon, Sun, Zap } from 'lucide-react'
-import { useTheme } from 'next-themes'
-import { Button } from '@/components/ui/button'
-import { cn } from '@/lib/utils'
 import { useTranslations } from 'next-intl'
+import { useTheme } from 'next-themes'
+
 import { LanguageSwitcher } from '@/components/language-switcher'
-import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip'
 import { useReopenOnboarding } from '@/components/onboarding-wizard'
-import Image from 'next/image'
+import { Button } from '@/components/ui/button'
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip'
+import { cn } from '@/lib/utils'
 
 const navLinks = [
   { href: '/', key: 'newJob' as const, icon: Download },

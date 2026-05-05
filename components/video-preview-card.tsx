@@ -1,7 +1,8 @@
 'use client'
 
+import { Play, Youtube } from 'lucide-react'
 import { useState } from 'react'
-import { Loader2, Play, Youtube } from 'lucide-react'
+
 import { Card } from '@/components/ui/card'
 import { Skeleton } from '@/components/ui/skeleton'
 
@@ -31,7 +32,6 @@ export function VideoPreviewCard({ url }: VideoPreviewCardProps) {
             <Skeleton className="h-full w-full rounded-none" />
           </div>
         )}
-        {/* eslint-disable-next-line @next/next/no-img-element */}
         <img
           src={thumb}
           alt="YouTube video thumbnail"

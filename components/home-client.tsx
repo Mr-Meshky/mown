@@ -1,7 +1,5 @@
 'use client'
 
-import { useState, useEffect } from 'react'
-import { useRouter } from 'next/navigation'
 import {
   CheckCircle2,
   Download,
@@ -15,17 +13,20 @@ import {
   Upload,
   Youtube,
 } from 'lucide-react'
+import { useRouter } from 'next/navigation'
+import { useTranslations } from 'next-intl'
+import { useEffect, useState } from 'react'
 import { toast } from 'sonner'
-import { Input } from '@/components/ui/input'
+
+import { JobConfigPanel } from '@/components/job-config-panel'
+import { RepoSelector } from '@/components/repo-selector'
+import { TokenInput } from '@/components/token-input'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
-import { TokenInput } from '@/components/token-input'
-import { RepoSelector } from '@/components/repo-selector'
-import { JobConfigPanel } from '@/components/job-config-panel'
+import { Input } from '@/components/ui/input'
 import { VideoPreviewCard } from '@/components/video-preview-card'
-import { saveJob, saveSettings, getSettings } from '@/lib/store'
 import type { DownloadType, InputType } from '@/lib/mock-data'
-import { useTranslations } from 'next-intl'
+import { getSettings, saveJob, saveSettings } from '@/lib/store'
 import { cn } from '@/lib/utils'
 
 const defaultDownloadType: Record<InputType, DownloadType> = {

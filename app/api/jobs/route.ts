@@ -1,7 +1,8 @@
-import { NextRequest, NextResponse } from 'next/server'
+import crypto from 'crypto'
+import { type NextRequest, NextResponse } from 'next/server'
+
 import { triggerWorkflow } from '@/lib/github'
 import { saveJob } from '@/lib/store'
-import crypto from 'crypto'
 
 const WORKFLOW_MAP: Record<string, string> = {
   youtube: 'youtube-download.yml',

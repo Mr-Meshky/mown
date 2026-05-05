@@ -1,8 +1,9 @@
-import { Badge } from '@/components/ui/badge'
-import { cn } from '@/lib/utils'
-import type { JobStatus } from '@/lib/mock-data'
 import { CheckCircle2, Clock, Loader2, XCircle } from 'lucide-react'
 import { useTranslations } from 'next-intl'
+
+import { Badge } from '@/components/ui/badge'
+import type { JobStatus } from '@/lib/mock-data'
+import { cn } from '@/lib/utils'
 
 interface JobStatusBadgeProps {
   status: JobStatus | string
@@ -42,7 +43,7 @@ export function JobStatusBadge({ status, className }: JobStatusBadgeProps) {
           (status === 'running' || status === 'in_progress') && 'animate-spin'
         )}
       />
-      {t(`status.${statusKey}`)}
+      {t(`status.${statusKey}` as Parameters<typeof t>[0])}
     </Badge>
   )
 }
