@@ -117,13 +117,69 @@ jobs:
           done
           cd ../..
 
+      - name: Update history.json and settings.json
+        env:
+          DIR_NAME: ${{ inputs.filename }}
+        run: |
+          # Create history.json if not exists
+          if [ ! -f history.json ]; then
+            echo "[]" > history.json
+          fi
+
+          # Create settings.json if not exists
+          if [ ! -f settings.json ]; then
+            echo '{"repoName":"${{ github.event.repository.name }}","owner":"${{ github.repository_owner }}","createdAt":"'$(date -u +'%Y-%m-%dT%H:%M:%SZ')'","lastSync":"","workflows":{"youtube":false,"direct":false,"snapshot":true,"soundcloud":false},"totalDownloads":0}' > settings.json
+          fi
+
+          # Get snapshot file info
+          SNAPSHOT_FILE="downloads/snapshot/${DIR_NAME}.zip"
+          if [ -f "$SNAPSHOT_FILE" ]; then
+            FILENAME="${DIR_NAME}.zip"
+            FILE_SIZE=$(stat -c%s "$SNAPSHOT_FILE" 2>/dev/null || stat -f%z "$SNAPSHOT_FILE" 2>/dev/null || echo 0)
+
+            # Add entry to history.json
+            jq --arg id "$(date +%s)-$(random 2>/dev/null || echo $RANDOM)" \
+               --arg filename "$FILENAME" \
+               --arg title "$DIR_NAME" \
+               --arg url "https://github.com/${{ github.repository }}/blob/main/downloads/snapshot/$FILENAME" \
+               --arg downloadUrl "https://raw.githubusercontent.com/${{ github.repository }}/main/downloads/snapshot/$FILENAME" \
+               --arg thumbnail "" \
+               --arg type "snapshot" \
+               --arg quality "" \
+               --arg format "zip" \
+               --arg duration "" \
+               --arg size "$FILE_SIZE" \
+               --arg createdAt "$(date -u +'%Y-%m-%dT%H:%M:%SZ')" \
+               --arg urlInput "${{ inputs.url }}" \
+               '. += [{
+                 id: $id,
+                 filename: $filename,
+                 title: $title,
+                 url: $url,
+                 downloadUrl: $downloadUrl,
+                 thumbnail: $thumbnail,
+                 type: $type,
+                 quality: $quality,
+                 format: $format,
+                 duration: $duration,
+                 size: $size,
+                 createdAt: $createdAt,
+                 urlInput: $urlInput
+               }]' history.json > history.json.tmp && mv history.json.tmp history.json
+
+            # Update settings.json
+            jq '.totalDownloads += 1 | .lastSync = "'$(date -u +'%Y-%m-%dT%H:%M:%SZ')'" | .workflows.snapshot = true' settings.json > settings.json.tmp && mv settings.json.tmp settings.json
+
+            echo "Updated history.json and settings.json with: $FILENAME"
+          fi
+
       - name: Commit and push
         run: |
           set -e
           git config user.name "mown Downloader"
           git config user.email "mown@system.local"
 
-          git add downloads/snapshot/
+          git add downloads/snapshot/ history.json
 
           if git diff --cached --quiet; then
             echo "No changes to commit"

@@ -218,13 +218,84 @@ jobs:
           done
           cd ../..
 
+      - name: Update history.json and settings.json
+        run: |
+          # Create history.json if not exists
+          if [ ! -f history.json ]; then
+            echo "[]" > history.json
+          fi
+
+          # Create settings.json if not exists
+          if [ ! -f settings.json ]; then
+            echo '{"repoName":"${{ github.event.repository.name }}","owner":"${{ github.repository_owner }}","createdAt":"'$(date -u +'%Y-%m-%dT%H:%M:%SZ')'","lastSync":"","workflows":{"youtube":false,"direct":false,"snapshot":false,"soundcloud":true},"totalDownloads":0}' > settings.json
+          fi
+
+          # Get downloaded file info
+          DOWNLOADED_FILE=$(ls -t downloads/soundcloud/*.mp3 downloads/soundcloud/*.wav downloads/soundcloud/*.flac downloads/soundcloud/*.ogg 2>/dev/null | head -1 || echo "")
+          if [ -n "$DOWNLOADED_FILE" ] && [ -f "$DOWNLOADED_FILE" ]; then
+            FILENAME=$(basename "$DOWNLOADED_FILE")
+            BASE_NAME="${FILENAME%.*}"
+            JSON_FILE="downloads/soundcloud/${BASE_NAME}.json"
+            THUMBNAIL=""
+            TITLE="$FILENAME"
+            DURATION=""
+            FILE_SIZE=""
+
+            # Get metadata from json file if exists
+            if [ -f "$JSON_FILE" ]; then
+              TITLE=$(jq -r '.title // "Unknown"' "$JSON_FILE")
+              THUMBNAIL=$(jq -r '.thumbnail // ""' "$JSON_FILE")
+              DURATION=$(jq -r '.duration // ""' "$JSON_FILE")
+              # Use local thumbnail path if exists
+              if [ -f "downloads/soundcloud/${BASE_NAME}.jpg" ]; then
+                THUMBNAIL="downloads/soundcloud/${BASE_NAME}.jpg"
+              fi
+            fi
+
+            # Get file size
+            FILE_SIZE=$(stat -c%s "$DOWNLOADED_FILE" 2>/dev/null || stat -f%z "$DOWNLOADED_FILE" 2>/dev/null || echo 0)
+
+            # Add entry to history.json
+            jq --arg id "$(date +%s)-$(random 2>/dev/null || echo $RANDOM)" \
+               --arg filename "$FILENAME" \
+               --arg title "$TITLE" \
+               --arg url "https://github.com/${{ github.repository }}/blob/main/downloads/soundcloud/$FILENAME" \
+               --arg downloadUrl "https://raw.githubusercontent.com/${{ github.repository }}/main/downloads/soundcloud/$FILENAME" \
+               --arg thumbnail "$THUMBNAIL" \
+               --arg type "soundcloud" \
+               --arg quality "${{ github.event.inputs.quality }}" \
+               --arg format "${{ github.event.inputs.format }}" \
+               --arg duration "$DURATION" \
+               --arg size "$FILE_SIZE" \
+               --arg createdAt "$(date -u +'%Y-%m-%dT%H:%M:%SZ')" \
+               '. += [{
+                 id: $id,
+                 filename: $filename,
+                 title: $title,
+                 url: $url,
+                 downloadUrl: $downloadUrl,
+                 thumbnail: $thumbnail,
+                 type: $type,
+                 quality: $quality,
+                 format: $format,
+                 duration: $duration,
+                 size: $size,
+                 createdAt: $createdAt
+               }]' history.json > history.json.tmp && mv history.json.tmp history.json
+
+            # Update settings.json
+            jq '.totalDownloads += 1 | .lastSync = "'$(date -u +'%Y-%m-%dT%H:%M:%SZ')'" | .workflows.soundcloud = true' settings.json > settings.json.tmp && mv settings.json.tmp settings.json
+
+            echo "Updated history.json and settings.json with: $FILENAME"
+          fi
+
       - name: Commit and push
         run: |
           set -e
           git config user.name "mown Downloader"
           git config user.email "mown@system.local"
 
-          git add downloads/soundcloud/
+          git add downloads/soundcloud/ history.json
 
           if git diff --cached --quiet; then
             echo "No changes to commit"

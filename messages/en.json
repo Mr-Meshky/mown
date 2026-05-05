@@ -17,6 +17,7 @@
   "navbar": {
     "home": "Home",
     "history": "History",
+    "sync": "Sync",
     "newJob": "New Download"
   },
   "home": {
@@ -174,6 +175,19 @@
     "details": "Details",
     "viewFolder": "Browse Files",
     "viewCommit": "View Commit"
+  },
+  "syncHistory": {
+    "title": "Sync History",
+    "subtitle": "Downloaded files from your GitHub repository",
+    "empty": "History is empty",
+    "emptyHint": "No files found in repository",
+    "error": "Failed to fetch history",
+    "loading": "Loading...",
+    "refresh": "Refresh",
+    "newDownload": "New Download",
+    "settingsIncomplete": "Repository settings incomplete",
+    "filesFound": "{count} files found",
+    "sync": "Sync"
   },
   "merge": {
     "title": "Merge Parts",

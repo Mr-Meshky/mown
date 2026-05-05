@@ -15,6 +15,7 @@ import Image from 'next/image'
 const navLinks = [
   { href: '/', key: 'newJob' as const, icon: Download },
   { href: '/history', key: 'history' as const, icon: History },
+  { href: '/sync-history', key: 'sync' as const, icon: Zap },
 ]
 
 export function Navbar() {
