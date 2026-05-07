@@ -50,13 +50,11 @@ jobs:
         uses: actions/setup-python@v5
         with:
           python-version: '3.11'
-          cache: 'pip'
 
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
           node-version: '20'
-          cache: 'npm'
 
       - name: Cache apt packages
         uses: actions/cache@v4
@@ -66,16 +64,14 @@ jobs:
           restore-keys: |
             ${{ runner.os }}-apt-ffmpeg-sc-
 
-      - name: Cache yt-dlp
-        id: cache-ytdlp-sc
+      - name: Cache pip packages
         uses: actions/cache@v4
         with:
-          path: |
-            /opt/hostedtoolcache/Python/3.11*/x64/lib/python3.11/site-packages/yt_dlp*
-            /opt/hostedtoolcache/Python/3.11*/x64/bin/yt-dlp
-          key: ${{ runner.os }}-ytdlp-sc-${{ hashFiles('lib/soundcloud-download.yml') }}
+          path: ~/.cache/pip
+          key: ${{ runner.os }}-pip-ytdlp-sc-${{ hashFiles('lib/soundcloud-download.yml') }}
           restore-keys: |
-            ${{ runner.os }}-ytdlp-sc-
+            ${{ runner.os }}-pip-ytdlp-sc-
+            ${{ runner.os }}-pip-ytdlp-
 
       - name: Install dependencies
         env:
@@ -83,7 +79,7 @@ jobs:
           TZ: UTC
         run: |
           python -m pip install --upgrade pip
-          pip install yt-dlp[default,EJS]
+          pip install yt-dlp yt-dlp-ejs
           sudo apt-get update
           sudo apt-get install -y ca-certificates ffmpeg
 

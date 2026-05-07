@@ -50,13 +50,11 @@ jobs:
         uses: actions/setup-python@v5
         with:
           python-version: '3.11'
-          cache: 'pip'
 
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
           node-version: '20'
-          cache: 'npm'
 
       - name: Cache apt packages
         uses: actions/cache@v4
@@ -66,16 +64,13 @@ jobs:
           restore-keys: |
             ${{ runner.os }}-apt-ffmpeg-
 
-      - name: Cache yt-dlp
-        id: cache-ytdlp
+      - name: Cache pip packages
         uses: actions/cache@v4
         with:
-          path: |
-            /opt/hostedtoolcache/Python/3.11*/x64/lib/python3.11/site-packages/yt_dlp*
-            /opt/hostedtoolcache/Python/3.11*/x64/bin/yt-dlp
-          key: ${{ runner.os }}-ytdlp-${{ hashFiles('lib/youtube-download.yml') }}
+          path: ~/.cache/pip
+          key: ${{ runner.os }}-pip-ytdlp-${{ hashFiles('lib/youtube-download.yml') }}
           restore-keys: |
-            ${{ runner.os }}-ytdlp-
+            ${{ runner.os }}-pip-ytdlp-
 
       - name: Install dependencies
         env:
