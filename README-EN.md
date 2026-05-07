@@ -21,7 +21,7 @@
 - **Direct URL download** — fetch any public file via `curl`
 - **Webpage snapshot** — save a full offline copy of any page as a single HTML file (via [monolith](https://github.com/Y2Z/monolith))
 - **Auto file splitting** — files over 95 MB are automatically split into ZIP chunks
-- **Download history** — track all jobs with status, logs, and re-download links
+- **Download history** — track all downloads with preview, multi-part merge instructions, and direct links
 - **Encrypted cookie storage** — YouTube cookies are sealed with libsodium and stored as a GitHub Actions secret
 - **Onboarding wizard** — step-by-step setup guide for new users
 - **RTL + i18n** — full Persian (Farsi) and English UI with `next-intl`
@@ -122,20 +122,24 @@ Your GitHub token and YouTube cookies **never leave your browser** — they go d
 2. Choose quality (`Best`, `1080p`, `720p`, `480p`, …) and format (`MP4` / `MP3`)
 3. Click **Start Download**
 4. Track progress in real time — logs stream from the GitHub Actions run
-5. When complete, the file appears in **History** ready to download
+5. When complete, find your file in the **History** page with download links
 
 ### Large files (> 95 MB)
 
 Files exceeding 95 MB are automatically split into numbered ZIP chunks.  
-Download all parts, then extract the first `.zip` — the file will be reassembled automatically.
+The History page shows all parts with download instructions:
 
-### Managing downloads
+- **Command Line:** Download all parts and merge with `cat`
+- **Using the App:** Go to the Merge page, drop all parts, and click Merge
+
+### Download History
 
 Open **History** to:
 
-- Re-download any artifact (within 1-day GitHub retention window)
-- Browse the committed files directly in your GitHub repository
-- See the exact commit for each download
+- Download any file directly from GitHub
+- View all parts of split files with merge instructions
+- Browse snapshots and mirrored websites
+- Filter by type: YouTube, SoundCloud, Direct, or Snapshot
 
 ---
 

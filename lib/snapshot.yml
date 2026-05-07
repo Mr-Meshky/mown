@@ -39,6 +39,14 @@ jobs:
             echo "✅ No snapshot found for $DOMAIN on $DATE — proceeding."
           fi
 
+      - name: Cache apt packages
+        uses: actions/cache@v4
+        with:
+          path: /var/cache/apt/archives
+          key: ${{ runner.os }}-apt-httrack-${{ hashFiles('lib/snapshot.yml') }}
+          restore-keys: |
+            ${{ runner.os }}-apt-httrack-
+
       - name: Install HTTrack
         if: steps.resolve.outputs.skip == 'false'
         run: |
@@ -78,46 +86,67 @@ jobs:
         run: |
           # Create history.json if not exists
           if [ ! -f history.json ]; then
-            echo '[]' > history.json
+            echo "[]" > history.json
           fi
 
-          # Get current time
           TIMESTAMP=$(date -u +'%Y-%m-%dT%H:%M:%SZ')
+          DIR_NAME="${{ steps.resolve.outputs.dir_name }}"
+          FULL_PATH="${{ steps.resolve.outputs.full_path }}"
+          FILE_SIZE="${{ steps.size.outputs.size }}"
 
-          # Create new history entry
-          NEW_ENTRY=$(jq -n \
-            --arg id "${{ steps.resolve.outputs.dir_name }}" \
-            --arg filename "${{ steps.resolve.outputs.dir_name }}" \
-            --arg title "${{ steps.resolve.outputs.domain }}" \
-            --arg url "${{ inputs.url }}" \
-            --arg downloadUrl "${{ steps.resolve.outputs.full_path }}" \
-            --arg thumbnail "" \
-            --arg type "snapshot" \
-            --arg format "html" \
-            --arg size "${{ steps.size.outputs.size }}" \
-            --arg createdAt "$TIMESTAMP" \
-            --arg urlInput "${{ inputs.url }}" \
-            '{
-              id: $id,
-              filename: $filename,
-              title: $title,
-              url: $url,
-              downloadUrl: $downloadUrl,
-              thumbnail: $thumbnail,
-              type: $type,
-              format: $format,
-              duration: "",
-              size: $size,
-              createdAt: $createdAt,
-              urlInput: $urlInput
-            }')
+          # Count files in snapshot
+          FILE_COUNT=$(find "$FULL_PATH" -type f 2>/dev/null | wc -l || echo 0)
 
-          # Add to history (max 50 items)
-          jq --argjson entry "$NEW_ENTRY" \
-            '[$entry] + . | .[:50]' \
-            history.json > history.json.tmp && mv history.json.tmp history.json
+          # Check if entry already exists
+          EXISTS=$(jq --arg id "$DIR_NAME" '[.[] | select(.id == $id and .type == "snapshot")] | length' history.json)
 
-          echo "✅ Added to history.json"
+          if [ "$EXISTS" -eq 0 ]; then
+            # Build list of key files (index.html and first few files)
+            KEY_FILES="[]"
+            if [ -f "${FULL_PATH}/index.html" ]; then
+              KEY_FILES='["index.html"]'
+            fi
+
+            # Add entry
+            jq --arg id "$DIR_NAME" \
+               --arg filename "$DIR_NAME" \
+               --arg title "${{ steps.resolve.outputs.domain }}" \
+               --arg url "${{ inputs.url }}" \
+               --arg githubUrl "https://github.com/${{ github.repository }}/blob/main/downloads/snapshot/$DIR_NAME" \
+               --arg downloadUrl "https://raw.githubusercontent.com/${{ github.repository }}/main/downloads/snapshot/$DIR_NAME" \
+               --arg thumbnail "" \
+               --arg type "snapshot" \
+               --arg quality "" \
+               --arg format "html" \
+               --arg duration "" \
+               --arg size "$FILE_SIZE" \
+               --arg createdAt "$TIMESTAMP" \
+               --argjson fileCount "$FILE_COUNT" \
+               --argjson isSplit false \
+               '. += [{
+                 id: $id,
+                 filename: $filename,
+                 title: $title,
+                 url: $url,
+                 githubUrl: $githubUrl,
+                 downloadUrl: $downloadUrl,
+                 thumbnail: $thumbnail,
+                 type: $type,
+                 quality: $quality,
+                 format: $format,
+                 duration: $duration,
+                 size: $size,
+                 createdAt: $createdAt,
+                 fileCount: $fileCount,
+                 isSplit: $isSplit,
+                 parts: []
+               }]' history.json > history.json.tmp && mv history.json.tmp history.json
+
+            echo "Added to history.json: $DIR_NAME"
+          fi
+
+          # Keep only last 100 entries
+          jq '.[-100:]' history.json > history.json.tmp && mv history.json.tmp history.json
 
       - name: Commit and push
         if: steps.resolve.outputs.skip == 'false'

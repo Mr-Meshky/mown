@@ -68,7 +68,7 @@ export default function JobPage() {
           <Link href="/">
             <Button variant="ghost" size="sm" className="text-muted-foreground h-7 gap-1 text-xs">
               <Plus className="h-3 w-3" />
-              {tHistory('newDownload')}
+              {t('newJob')}
             </Button>
           </Link>
           <span className="text-border text-xs">/</span>

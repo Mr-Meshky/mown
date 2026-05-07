@@ -255,3 +255,79 @@ export async function downloadArtifact(token: string, owner: string, repo: strin
     isMultipart: true,
   }
 }
+
+export interface HistoryEntry {
+  id: string
+  filename: string
+  title: string
+  url?: string
+  githubUrl: string
+  downloadUrl: string
+  thumbnail: string
+  type: 'youtube' | 'soundcloud' | 'direct' | 'snapshot'
+  quality: string
+  format: string
+  duration: string
+  uploader?: string
+  track?: string
+  album?: string
+  size: number | string
+  createdAt: string
+  isSplit: boolean
+  parts: Array<{
+    filename: string
+    size: number | string
+    downloadUrl: string
+  }>
+  fileCount?: number
+}
+
+export async function fetchHistory(
+  token: string,
+  owner: string,
+  repo: string
+): Promise<HistoryEntry[]> {
+  const octokit = getOctokit(token)
+
+  try {
+    const { data } = await octokit.rest.repos.getContent({
+      owner,
+      repo,
+      path: 'history.json',
+    })
+
+    if ('content' in data && data.content) {
+      const content = Buffer.from(data.content, 'base64').toString('utf8')
+      return JSON.parse(content)
+    }
+
+    return []
+  } catch {
+    return []
+  }
+}
+
+export async function fetchFileContent(
+  token: string,
+  owner: string,
+  repo: string,
+  path: string
+): Promise<string | null> {
+  const octokit = getOctokit(token)
+
+  try {
+    const { data } = await octokit.rest.repos.getContent({
+      owner,
+      repo,
+      path,
+    })
+
+    if ('content' in data && data.content) {
+      return Buffer.from(data.content, 'base64').toString('utf8')
+    }
+
+    return null
+  } catch {
+    return null
+  }
+}

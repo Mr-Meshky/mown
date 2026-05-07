@@ -31,13 +31,33 @@ jobs:
       - name: Create downloads directory
         run: mkdir -p downloads/files
 
+      - name: Check cache
+        id: cache-check
+        run: |
+          URL_HASH=$(echo -n "${{ inputs.url }}" | md5sum | cut -d' ' -f1)
+          CACHE_FILE="downloads/files/.cache_${URL_HASH}"
+          echo "url_hash=$URL_HASH" >> $GITHUB_OUTPUT
+          echo "cache_file=$CACHE_FILE" >> $GITHUB_OUTPUT
+
+          if [ -f "$CACHE_FILE" ] && [ -f "downloads/files/$(cat "$CACHE_FILE")" ]; then
+            echo "hit=true" >> $GITHUB_OUTPUT
+            echo "Cache hit: $(cat "$CACHE_FILE")"
+          else
+            echo "hit=false" >> $GITHUB_OUTPUT
+          fi
+
       - name: Download file
+        if: steps.cache-check.outputs.hit == 'false'
         env:
           URL: ${{ inputs.url }}
           FILENAME: ${{ inputs.filename }}
         run: |
-          curl -L --retry 3 -o "downloads/files/$FILENAME" "$URL"
+          curl -L --retry 3 --connect-timeout 10 --max-time 0 -o "downloads/files/$FILENAME" "$URL"
           echo "Downloaded: downloads/files/$FILENAME"
+
+          # Save to cache
+          URL_HASH=$(echo -n "$URL" | md5sum | cut -d' ' -f1)
+          echo "$FILENAME" > "downloads/files/.cache_${URL_HASH}"
 
       - name: Split large files
         run: |
@@ -69,56 +89,138 @@ jobs:
           done
           cd ../..
 
-      - name: Update history.json and settings.json
+      - name: Update history.json
         run: |
           # Create history.json if not exists
           if [ ! -f history.json ]; then
             echo "[]" > history.json
           fi
 
-          # Create settings.json if not exists
-          if [ ! -f settings.json ]; then
-            echo '{"repoName":"${{ github.event.repository.name }}","owner":"${{ github.repository_owner }}","createdAt":"'$(date -u +'%Y-%m-%dT%H:%M:%SZ')'","lastSync":"","workflows":{"youtube":false,"direct":true,"snapshot":false,"soundcloud":false},"totalDownloads":0}' > settings.json
-          fi
+          # Scan all files and build history entries
+          cd downloads/files
 
-          # Get downloaded file info
-          DOWNLOADED_FILE=$(ls -t downloads/files/* 2>/dev/null | head -1 || echo "")
-          if [ -n "$DOWNLOADED_FILE" ] && [ -f "$DOWNLOADED_FILE" ]; then
-            FILENAME=$(basename "$DOWNLOADED_FILE")
-            FILE_SIZE=$(stat -c%s "$DOWNLOADED_FILE" 2>/dev/null || stat -f%z "$DOWNLOADED_FILE" 2>/dev/null || echo 0)
+          for media_file in *; do
+            # Skip hidden files and part files (they're tracked by parent)
+            [ -f "$media_file" ] || continue
+            [[ "$media_file" == .* ]] && continue
+            [[ "$media_file" == *part[0-9]*.zip ]] && continue
 
-            # Add entry to history.json
-            jq --arg id "$(date +%s)-$(random 2>/dev/null || echo $RANDOM)" \
-               --arg filename "$FILENAME" \
-               --arg title "$FILENAME" \
-               --arg url "https://github.com/${{ github.repository }}/blob/main/downloads/files/$FILENAME" \
-               --arg downloadUrl "https://raw.githubusercontent.com/${{ github.repository }}/main/downloads/files/$FILENAME" \
-               --arg thumbnail "" \
-               --arg type "direct" \
-               --arg quality "" \
-               --arg format "${FILENAME##*.}" \
-               --arg duration "" \
-               --arg size "$FILE_SIZE" \
-               --arg createdAt "$(date -u +'%Y-%m-%dT%H:%M:%SZ')" \
-               '. += [{
-                 id: $id,
-                 filename: $filename,
-                 title: $title,
-                 url: $url,
-                 downloadUrl: $downloadUrl,
-                 thumbnail: $thumbnail,
-                 type: $type,
-                 quality: $quality,
-                 format: $format,
-                 duration: $duration,
-                 size: $size,
-                 createdAt: $createdAt
-               }]' history.json > history.json.tmp && mv history.json.tmp history.json
+            BASE_NAME="${media_file%.*}"
+            EXT="${media_file##*.}"
+            FILE_SIZE=$(stat -c%s "$media_file" 2>/dev/null || stat -f%z "$media_file" 2>/dev/null || echo 0)
+            TIMESTAMP=$(date -u +'%Y-%m-%dT%H:%M:%SZ')
 
-            # Update settings.json
-            jq '.totalDownloads += 1 | .lastSync = "'$(date -u +'%Y-%m-%dT%H:%M:%SZ')'" | .workflows.direct = true' settings.json > settings.json.tmp && mv settings.json.tmp settings.json
+            # Check if this is a split file (has parts)
+            IS_SPLIT=false
+            PARTS_COUNT=0
+            PARTS_JSON="[]"
 
-            echo "Updated history.json and settings.json with: $FILENAME"
+            if ls ${BASE_NAME}part*.zip 1>/dev/null 2>&1; then
+              IS_SPLIT=true
+              # Count parts
+              PARTS_COUNT=$(ls -1 ${BASE_NAME}part*.zip 2>/dev/null | wc -l || echo 0)
+
+              # Build parts array
+              PARTS_ARRAY=""
+              for i in $(seq 1 $PARTS_COUNT); do
+                PART_NUM=$(printf '%02d' $i)
+                PART_FILE="${BASE_NAME}part${PART_NUM}.zip"
+                if [ -f "$PART_FILE" ]; then
+                  if [ -n "$PARTS_ARRAY" ]; then
+                    PARTS_ARRAY="${PARTS_ARRAY},"
+                  fi
+                  PART_SIZE=$(stat -c%s "$PART_FILE" 2>/dev/null || stat -f%z "$PART_FILE" 2>/dev/null || echo 0)
+                  PARTS_ARRAY="${PARTS_ARRAY}{\"filename\":\"${PART_FILE}\",\"size\":${PART_SIZE},\"downloadUrl\":\"https://raw.githubusercontent.com/${{ github.repository }}/main/downloads/files/${PART_FILE}\"}"
+                fi
+              done
+              PARTS_JSON="[${PARTS_ARRAY}]"
+            fi
+
+            TITLE="${{ inputs.filename }}"
+            if [ -z "$TITLE" ]; then
+              TITLE="$media_file"
+            fi
+
+            # Escape special chars for JSON
+            TITLE=$(echo "$TITLE" | jq -Rs '.[:-1] // .')
+
+            # Check if entry already exists (by filename)
+            EXISTS=$(jq --arg fn "$media_file" '[.[] | select(.filename == $fn and .type == "direct")] | length' ../history.json)
+
+            if [ "$EXISTS" -eq 0 ]; then
+              # Add new entry
+              if [ "$IS_SPLIT" = true ]; then
+                jq --arg id "$(date +%s)-${RANDOM}" \
+                   --arg filename "$media_file" \
+                   --arg title "$TITLE" \
+                   --arg githubUrl "https://github.com/${{ github.repository }}/blob/main/downloads/files/$media_file" \
+                   --arg downloadUrl "https://raw.githubusercontent.com/${{ github.repository }}/main/downloads/files/$media_file" \
+                   --arg thumbnail "" \
+                   --arg type "direct" \
+                   --arg quality "" \
+                   --arg format "$EXT" \
+                   --arg duration "" \
+                   --arg size "$FILE_SIZE" \
+                   --arg createdAt "$TIMESTAMP" \
+                   --argjson isSplit true \
+                   --argjson parts "$PARTS_JSON" \
+                   '. += [{
+                     id: $id,
+                     filename: $filename,
+                     title: $title,
+                     githubUrl: $githubUrl,
+                     downloadUrl: $downloadUrl,
+                     thumbnail: $thumbnail,
+                     type: $type,
+                     quality: $quality,
+                     format: $format,
+                     duration: $duration,
+                     size: $size,
+                     createdAt: $createdAt,
+                     isSplit: $isSplit,
+                     parts: $parts
+                   }]' ../history.json > ../history.json.tmp && mv ../history.json.tmp ../history.json
+              else
+                jq --arg id "$(date +%s)-${RANDOM}" \
+                   --arg filename "$media_file" \
+                   --arg title "$TITLE" \
+                   --arg githubUrl "https://github.com/${{ github.repository }}/blob/main/downloads/files/$media_file" \
+                   --arg downloadUrl "https://raw.githubusercontent.com/${{ github.repository }}/main/downloads/files/$media_file" \
+                   --arg thumbnail "" \
+                   --arg type "direct" \
+                   --arg quality "" \
+                   --arg format "$EXT" \
+                   --arg duration "" \
+                   --arg size "$FILE_SIZE" \
+                   --arg createdAt "$TIMESTAMP" \
+                   --argjson isSplit false \
+                   '. += [{
+                     id: $id,
+                     filename: $filename,
+                     title: $title,
+                     githubUrl: $githubUrl,
+                     downloadUrl: $downloadUrl,
+                     thumbnail: $thumbnail,
+                     type: $type,
+                     quality: $quality,
+                     format: $format,
+                     duration: $duration,
+                     size: $size,
+                     createdAt: $createdAt,
+                     isSplit: $isSplit,
+                     parts: []
+                   }]' ../history.json > ../history.json.tmp && mv ../history.json.tmp ../history.json
+              fi
+
+              echo "Added to history.json: $media_file"
+            fi
+          done
+
+          cd ../..
+
+          # Keep only last 100 entries
+          if [ -f history.json ]; then
+            jq '.[-100:]' history.json > history.json.tmp && mv history.json.tmp history.json
           fi
 
       - name: Commit and push

@@ -1,6 +1,6 @@
 'use client'
 
-import { BookOpen, Download, History, Moon, Sun, Zap } from 'lucide-react'
+import { BookOpen, Download, History, Moon, Sun } from 'lucide-react'
 import Image from 'next/image'
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
@@ -16,7 +16,6 @@ import { cn } from '@/lib/utils'
 const navLinks = [
   { href: '/', key: 'newJob' as const, icon: Download },
   { href: '/history', key: 'history' as const, icon: History },
-  { href: '/sync-history', key: 'sync' as const, icon: Zap },
 ]
 
 export function Navbar() {

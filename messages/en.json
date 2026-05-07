@@ -15,15 +15,43 @@
     }
   },
   "navbar": {
-    "home": "Home",
     "history": "History",
-    "sync": "Sync",
     "newJob": "New Download"
   },
   "home": {
     "title": "Download Anything",
     "subtitle": "via GitHub Actions",
-     "merge": {
+  "history": {
+    "title": "Download History",
+    "subtitle": "All your downloaded files from GitHub repository",
+    "loading": "Loading history...",
+    "empty": "No downloads yet",
+    "emptyHint": "Start a new download from the home page",
+    "newDownload": "New Download",
+    "setupRequired": "Setup required",
+    "setupRequiredHint": "Please configure your GitHub token first",
+    "goHome": "Go Home",
+    "partsTitle": "Download Parts",
+    "browseOnGitHub": "Browse on GitHub",
+    "snapshotFiles": "{count} files in snapshot",
+    "filter": {
+      "all": "All",
+      "youtube": "YouTube",
+      "soundcloud": "SoundCloud",
+      "direct": "Direct",
+      "snapshot": "Snapshot"
+    },
+    "merge": {
+      "cli": "Command Line",
+      "ui": "Using Website",
+      "cliDesc": "Download all parts and merge them with terminal commands:",
+      "uiDesc": "Follow these steps to merge your downloaded parts:",
+      "uiStep1": "Download all parts listed above to the same folder",
+      "uiStep2": "Go to the Merge page from the home page",
+      "uiStep3": "Drop all parts into the merge tool and click Merge"
+    }
+  },
+  "merge": {
       "link": "Merge downloaded parts"
     },
     "tabs": {
@@ -154,49 +182,10 @@
       "tip2Title": "Choose settings",
       "tip2Desc": "Set quality, format and filename as needed",
       "tip3Title": "Track progress",
-      "tip3Desc": "On the history page you can see all download statuses"
+      "tip3Desc": "View all downloads in History with status and download links"
     },
     "openGuide": "Guide",
     "reopen": "Show Guide Again"
-  },
-  "history": {
-    "title": "Download History",
-    "subtitle": "All download jobs submitted via GitHub Actions.",
-    "empty": "No downloads yet",
-    "emptyHint": "Start a new download from the home page",
-    "stats": {
-      "total": "Total",
-      "completed": "Completed",
-      "failed": "Failed",
-      "running": "Running"
-    },
-    "redownload": "Re-download",
-    "expiredBadge": "Expired",
-    "newDownload": "New Download",
-    "details": "Details",
-    "viewFolder": "Browse Files",
-    "viewCommit": "View Commit"
-  },
-  "syncHistory": {
-    "title": "Sync History",
-    "subtitle": "Downloaded files from your GitHub repository",
-    "empty": "History is empty",
-    "emptyHint": "No files found in repository",
-    "error": "Failed to fetch history",
-    "loading": "Loading...",
-    "refresh": "Refresh",
-    "newDownload": "New Download",
-    "settingsIncomplete": "Repository settings incomplete",
-    "filesFound": "{count} files found",
-    "sync": "Sync",
-    "initialized": "Initialized",
-    "optional": "Optional",
-    "reload": "Reload",
-    "downloadedFiles": "Downloaded files from GitHub repository",
-    "repository": "Repository:",
-    "download": "Download",
-    "github": "GitHub",
-    "update": "Update"
   },
   "merge": {
     "title": "Merge Parts",
