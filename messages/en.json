@@ -95,6 +95,15 @@
       "chatId": "Numeric User ID",
       "chatIdPlaceholder": "e.g. 123456789",
       "description": "The downloaded track and cover will be sent directly to you on Bale Messenger"
+    },
+    "rubika": {
+      "title": "Send to Rubika",
+      "enable": "Send track via Rubika Messenger",
+      "token": "Bot Token",
+      "tokenPlaceholder": "Rubika bot token...",
+      "chatId": "User or Channel GUID",
+      "chatIdPlaceholder": "e.g. u0123456789abcdef",
+      "description": "The downloaded track will be sent directly to you on Rubika with no file size limit"
     }
   },
   "jobConfig": {

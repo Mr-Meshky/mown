@@ -27,6 +27,16 @@ on:
         required: false
         type: string
         default: ''
+      rubika_token:
+        description: 'Rubika bot token (optional)'
+        required: false
+        type: string
+        default: ''
+      rubika_chat_id:
+        description: 'Rubika user/channel GUID (optional)'
+        required: false
+        type: string
+        default: ''
 
 permissions:
   contents: read
@@ -143,6 +153,106 @@ jobs:
             echo "artist=" >> $GITHUB_OUTPUT
             echo "album=" >> $GITHUB_OUTPUT
             echo "audio_file=$AUDIO_FILE" >> $GITHUB_OUTPUT
+          fi
+
+      - name: Send to Rubika
+        env:
+          RUBIKA_TOKEN: ${{ inputs.rubika_token }}
+          RUBIKA_CHAT_ID: ${{ inputs.rubika_chat_id }}
+        run: |
+          if [ -z "$RUBIKA_TOKEN" ] || [ -z "$RUBIKA_CHAT_ID" ]; then
+            echo "Rubika not configured, skipping"
+            exit 0
+          fi
+
+          AUDIO_FILE="${{ steps.track-info.outputs.audio_file }}"
+          TITLE="${{ steps.track-info.outputs.title }}"
+          ARTIST="${{ steps.track-info.outputs.artist }}"
+          DURATION="${{ steps.track-info.outputs.duration }}"
+
+          if [ -z "$AUDIO_FILE" ] || [ ! -f "downloads/files/$AUDIO_FILE" ]; then
+            echo "Audio file not found, skipping Rubika send"
+            exit 0
+          fi
+
+          FULL_PATH="downloads/files/$AUDIO_FILE"
+          FILE_SIZE=$(stat -c%s "$FULL_PATH" 2>/dev/null || stat -f%z "$FULL_PATH" 2>/dev/null || echo 0)
+          RUBIKA_API="https://messengerg2b1.iranlms.ir/"
+
+          # Step 1: Request upload URL
+          UPLOAD_JSON=$(jq -n \
+            --arg auth "$RUBIKA_TOKEN" \
+            --arg filename "$AUDIO_FILE" \
+            --argjson size "$FILE_SIZE" \
+            '{api_version:"6",auth:$auth,method:"requestSendFile",input:{file_name:$filename,mime:"audio/mp3",size:$size}}')
+
+          UPLOAD_REQ=$(curl -s -X POST "$RUBIKA_API" \
+            -H "Content-Type: application/json" \
+            -d "$UPLOAD_JSON")
+
+          STATUS=$(echo "$UPLOAD_REQ" | jq -r '.status // "FAILED"')
+          if [ "$STATUS" != "OK" ]; then
+            echo "Rubika upload request failed (non-fatal): $UPLOAD_REQ"
+            exit 0
+          fi
+
+          FILE_ID=$(echo "$UPLOAD_REQ" | jq -r '.data.id')
+          ACCESS_HASH_SEND=$(echo "$UPLOAD_REQ" | jq -r '.data.access_hash_send')
+          UPLOAD_URL=$(echo "$UPLOAD_REQ" | jq -r '.data.upload_url')
+          DC_ID=$(echo "$UPLOAD_REQ" | jq '.data.dc_id // 0')
+
+          # Step 2: Upload file (single chunk — no size limit on Rubika)
+          CHUNK_RESP=$(curl -s -X POST "$UPLOAD_URL" \
+            -H "auth: $RUBIKA_TOKEN" \
+            -H "access-hash-send: $ACCESS_HASH_SEND" \
+            -H "file-id: $FILE_ID" \
+            -H "chunk-size: $FILE_SIZE" \
+            -H "part-number: 0" \
+            -H "total-part: 1" \
+            -H "Content-Type: application/octet-stream" \
+            --data-binary "@$FULL_PATH")
+
+          UPLOAD_STATUS=$(echo "$CHUNK_RESP" | jq -r '.status // "FAILED"')
+          if [ "$UPLOAD_STATUS" != "OK" ]; then
+            echo "Rubika file upload failed (non-fatal): $CHUNK_RESP"
+            exit 0
+          fi
+          ACCESS_HASH_REC=$(echo "$CHUNK_RESP" | jq -r '.data.access_hash_rec // ""')
+
+          # Step 3: Send message with audio file_inline
+          if [ -n "$ARTIST" ]; then
+            CAPTION="${ARTIST} - ${TITLE}"
+          else
+            CAPTION="$TITLE"
+          fi
+
+          DURATION_INT=0
+          if [ -n "$DURATION" ] && echo "$DURATION" | grep -qE '^[0-9]+(\.[0-9]+)?$'; then
+            DURATION_INT=$(printf "%.0f" "$DURATION")
+          fi
+
+          SEND_JSON=$(jq -n \
+            --arg auth "$RUBIKA_TOKEN" \
+            --arg chat_id "$RUBIKA_CHAT_ID" \
+            --arg caption "$CAPTION" \
+            --arg file_id "$FILE_ID" \
+            --arg filename "$AUDIO_FILE" \
+            --arg artist "$ARTIST" \
+            --arg access_hash_rec "$ACCESS_HASH_REC" \
+            --argjson size "$FILE_SIZE" \
+            --argjson dc_id "$DC_ID" \
+            --argjson duration "$DURATION_INT" \
+            '{api_version:"6",auth:$auth,method:"sendMessage",input:{object_guid:$chat_id,text:$caption,file_inline:{dc_id:$dc_id,file_id:$file_id,type:"Music",file_name:$filename,size:$size,mime:"audio/mp3",music_performer:$artist,music_duration:$duration,access_hash_rec:$access_hash_rec}}}')
+
+          SEND_RESP=$(curl -s -X POST "$RUBIKA_API" \
+            -H "Content-Type: application/json" \
+            -d "$SEND_JSON")
+
+          SEND_STATUS=$(echo "$SEND_RESP" | jq -r '.status // "FAILED"')
+          if [ "$SEND_STATUS" = "OK" ]; then
+            echo "Sent to Rubika successfully"
+          else
+            echo "Rubika send failed (non-fatal): $SEND_RESP"
           fi
 
       - name: Split large files

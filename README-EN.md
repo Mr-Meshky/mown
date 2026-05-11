@@ -18,7 +18,7 @@
 ## ✨ Features
 
 - **YouTube downloader** — quality selection (360p → 4K), video (MP4/WebM) or audio (MP3)
-- **SoundCloud downloader** — download tracks with quality options (best, high, medium, low)
+- **SoundCloud downloader** — download tracks with quality options (best, high, medium, low) + optional delivery to **Bale** or **Rubika** Messenger (no file size limit for Rubika)
 - **Direct URL download** — fetch any public file via `curl`
 - **Webpage snapshot** — save a full offline copy of any page as a single HTML file (via [monolith](https://github.com/Y2Z/monolith))
 - **Auto file splitting** — files over 95 MB are automatically split into ZIP chunks

@@ -63,6 +63,9 @@ export function HomeClient() {
   const [baleEnabled, setBaleEnabled] = useState(false)
   const [baleToken, setBaleToken] = useState('')
   const [baleChatId, setBaleChatId] = useState('')
+  const [rubikaEnabled, setRubikaEnabled] = useState(false)
+  const [rubikaToken, setRubikaToken] = useState('')
+  const [rubikaChatId, setRubikaChatId] = useState('')
 
   useEffect(() => {
     const settings = getSettings()
@@ -73,6 +76,9 @@ export function HomeClient() {
     if (settings.baleEnabled) setBaleEnabled(settings.baleEnabled)
     if (settings.baleToken) setBaleToken(settings.baleToken)
     if (settings.baleChatId) setBaleChatId(settings.baleChatId)
+    if (settings.rubikaEnabled) setRubikaEnabled(settings.rubikaEnabled)
+    if (settings.rubikaToken) setRubikaToken(settings.rubikaToken)
+    if (settings.rubikaChatId) setRubikaChatId(settings.rubikaChatId)
   }, [])
 
   function handleTabChange(val: InputType) {
@@ -176,6 +182,10 @@ export function HomeClient() {
         if (baleEnabled && baleToken && baleChatId) {
           options.bale_token = baleToken
           options.bale_chat_id = baleChatId
+        }
+        if (rubikaEnabled && rubikaToken && rubikaChatId) {
+          options.rubika_token = rubikaToken
+          options.rubika_chat_id = rubikaChatId
         }
       }
       if (filename) options.filename = filename
@@ -378,58 +388,112 @@ export function HomeClient() {
         </Card>
       </div>
 
-      {/* Bale config - SoundCloud only */}
+      {/* Messenger configs - SoundCloud only */}
       {inputType === 'soundcloud' && (
-        <Card className="border-border bg-card">
-          <CardHeader className="px-5 pt-4 pb-3">
-            <CardTitle className="flex items-center gap-2 text-sm font-medium">
-              <MessageCircle className="text-muted-foreground h-4 w-4" />
-              {t('bale.title')}
-            </CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-3 px-5 pb-5">
-            <p className="text-muted-foreground text-xs leading-relaxed">{t('bale.description')}</p>
-            <label className="flex cursor-pointer items-center gap-2">
-              <input
-                type="checkbox"
-                checked={baleEnabled}
-                onChange={e => {
-                  setBaleEnabled(e.target.checked)
-                  saveSettings({ baleEnabled: e.target.checked })
-                }}
-                className="h-4 w-4 accent-primary"
-              />
-              <span className="text-sm">{t('bale.enable')}</span>
-            </label>
-            {baleEnabled && (
-              <div className="space-y-2">
-                <Input
-                  placeholder={t('bale.tokenPlaceholder')}
-                  value={baleToken}
+        <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
+          {/* Bale */}
+          <Card className="border-border bg-card">
+            <CardHeader className="px-5 pt-4 pb-3">
+              <CardTitle className="flex items-center gap-2 text-sm font-medium">
+                <MessageCircle className="text-muted-foreground h-4 w-4" />
+                {t('bale.title')}
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-3 px-5 pb-5">
+              <p className="text-muted-foreground text-xs leading-relaxed">{t('bale.description')}</p>
+              <label className="flex cursor-pointer items-center gap-2">
+                <input
+                  type="checkbox"
+                  checked={baleEnabled}
                   onChange={e => {
-                    setBaleToken(e.target.value)
-                    saveSettings({ baleToken: e.target.value })
+                    setBaleEnabled(e.target.checked)
+                    saveSettings({ baleEnabled: e.target.checked })
                   }}
-                  className="h-9 font-mono text-sm"
-                  dir="ltr"
-                  aria-label={t('bale.token')}
+                  className="h-4 w-4 accent-primary"
                 />
-                <Input
-                  placeholder={t('bale.chatIdPlaceholder')}
-                  value={baleChatId}
+                <span className="text-sm">{t('bale.enable')}</span>
+              </label>
+              {baleEnabled && (
+                <div className="space-y-2">
+                  <Input
+                    placeholder={t('bale.tokenPlaceholder')}
+                    value={baleToken}
+                    onChange={e => {
+                      setBaleToken(e.target.value)
+                      saveSettings({ baleToken: e.target.value })
+                    }}
+                    className="h-9 font-mono text-sm"
+                    dir="ltr"
+                    aria-label={t('bale.token')}
+                  />
+                  <Input
+                    placeholder={t('bale.chatIdPlaceholder')}
+                    value={baleChatId}
+                    onChange={e => {
+                      setBaleChatId(e.target.value)
+                      saveSettings({ baleChatId: e.target.value })
+                    }}
+                    className="h-9 font-mono text-sm"
+                    dir="ltr"
+                    inputMode="numeric"
+                    aria-label={t('bale.chatId')}
+                  />
+                </div>
+              )}
+            </CardContent>
+          </Card>
+
+          {/* Rubika */}
+          <Card className="border-border bg-card">
+            <CardHeader className="px-5 pt-4 pb-3">
+              <CardTitle className="flex items-center gap-2 text-sm font-medium">
+                <MessageCircle className="text-muted-foreground h-4 w-4" />
+                {t('rubika.title')}
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-3 px-5 pb-5">
+              <p className="text-muted-foreground text-xs leading-relaxed">{t('rubika.description')}</p>
+              <label className="flex cursor-pointer items-center gap-2">
+                <input
+                  type="checkbox"
+                  checked={rubikaEnabled}
                   onChange={e => {
-                    setBaleChatId(e.target.value)
-                    saveSettings({ baleChatId: e.target.value })
+                    setRubikaEnabled(e.target.checked)
+                    saveSettings({ rubikaEnabled: e.target.checked })
                   }}
-                  className="h-9 font-mono text-sm"
-                  dir="ltr"
-                  inputMode="numeric"
-                  aria-label={t('bale.chatId')}
+                  className="h-4 w-4 accent-primary"
                 />
-              </div>
-            )}
-          </CardContent>
-        </Card>
+                <span className="text-sm">{t('rubika.enable')}</span>
+              </label>
+              {rubikaEnabled && (
+                <div className="space-y-2">
+                  <Input
+                    placeholder={t('rubika.tokenPlaceholder')}
+                    value={rubikaToken}
+                    onChange={e => {
+                      setRubikaToken(e.target.value)
+                      saveSettings({ rubikaToken: e.target.value })
+                    }}
+                    className="h-9 font-mono text-sm"
+                    dir="ltr"
+                    aria-label={t('rubika.token')}
+                  />
+                  <Input
+                    placeholder={t('rubika.chatIdPlaceholder')}
+                    value={rubikaChatId}
+                    onChange={e => {
+                      setRubikaChatId(e.target.value)
+                      saveSettings({ rubikaChatId: e.target.value })
+                    }}
+                    className="h-9 font-mono text-sm"
+                    dir="ltr"
+                    aria-label={t('rubika.chatId')}
+                  />
+                </div>
+              )}
+            </CardContent>
+          </Card>
+        </div>
       )}
     </form>
   )

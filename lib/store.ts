@@ -32,6 +32,9 @@ export interface Settings {
   baleToken: string
   baleChatId: string
   baleEnabled: boolean
+  rubikaToken: string
+  rubikaChatId: string
+  rubikaEnabled: boolean
 }
 
 const STORE_KEY = 'mown_jobs'
@@ -45,6 +48,9 @@ const DEFAULT_SETTINGS: Settings = {
   baleToken: '',
   baleChatId: '',
   baleEnabled: false,
+  rubikaToken: '',
+  rubikaChatId: '',
+  rubikaEnabled: false,
 }
 
 // Job functions
