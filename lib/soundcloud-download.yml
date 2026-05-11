@@ -44,15 +44,40 @@ jobs:
         with:
           token: ${{ secrets.GITHUB_TOKEN }}
 
-      - name: Create downloads directory
-        run: mkdir -p downloads/files
+      - name: Cache ffmpeg
+        id: cache-ffmpeg
+        uses: actions/cache@v4
+        with:
+          path: ~/mown-tools
+          key: ffmpeg-static-v1-${{ runner.os }}
 
       - name: Setup dependencies
         run: |
-          sudo apt-get install -y --no-install-recommends ffmpeg
-          sudo curl -L https://github.com/yt-dlp/yt-dlp/releases/latest/download/yt-dlp -o /usr/local/bin/yt-dlp
+          TOOLS_DIR="$HOME/mown-tools"
+          mkdir -p "$TOOLS_DIR"
+
+          if [ ! -f "$TOOLS_DIR/ffmpeg" ]; then
+            echo "Downloading ffmpeg static binary..."
+            curl -fsSL "https://github.com/yt-dlp/FFmpeg-Builds/releases/download/latest/ffmpeg-master-latest-linux64-gpl.tar.xz" \
+              | tar -xJ -C /tmp
+            FFMPEG_DIR=$(find /tmp -maxdepth 1 -name "ffmpeg-*" -type d | head -1)
+            cp "$FFMPEG_DIR/bin/ffmpeg" "$FFMPEG_DIR/bin/ffprobe" "$TOOLS_DIR/"
+            chmod +x "$TOOLS_DIR/ffmpeg" "$TOOLS_DIR/ffprobe"
+          else
+            echo "ffmpeg restored from cache"
+          fi
+
+          sudo ln -sf "$TOOLS_DIR/ffmpeg" /usr/local/bin/ffmpeg
+          sudo ln -sf "$TOOLS_DIR/ffprobe" /usr/local/bin/ffprobe
+
+          curl -fsSL "https://github.com/yt-dlp/yt-dlp/releases/latest/download/yt-dlp" -o /usr/local/bin/yt-dlp
           sudo chmod +x /usr/local/bin/yt-dlp
+
           yt-dlp --version
+          ffmpeg -version | head -1
+
+      - name: Create downloads directory
+        run: mkdir -p downloads/files
 
       - name: Download track
         env:
