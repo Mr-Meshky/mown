@@ -75,137 +75,82 @@ jobs:
 
       - name: Update history.json
         run: |
-          # Create history.json if not exists
           if [ ! -f history.json ]; then
             echo "[]" > history.json
           fi
 
-          # Scan all files and build history entries
+          FILENAME="${{ inputs.filename }}"
+          EXT="${FILENAME##*.}"
+          BASE_NAME="${FILENAME%.*}"
+          TIMESTAMP=$(date -u +'%Y-%m-%dT%H:%M:%SZ')
+
           cd downloads/files
 
-          for media_file in *; do
-            # Skip hidden files and part files (they're tracked by parent)
-            [ -f "$media_file" ] || continue
-            [[ "$media_file" == .* ]] && continue
-            [[ "$media_file" == *part[0-9]*.zip ]] && continue
+          IS_SPLIT=false
+          FILE_SIZE=0
+          PARTS_JSON="[]"
 
-            BASE_NAME="${media_file%.*}"
-            EXT="${media_file##*.}"
-            FILE_SIZE=$(stat -c%s "$media_file" 2>/dev/null || stat -f%z "$media_file" 2>/dev/null || echo 0)
-            TIMESTAMP=$(date -u +'%Y-%m-%dT%H:%M:%SZ')
+          if ls ${BASE_NAME}part*.zip 1>/dev/null 2>&1; then
+            IS_SPLIT=true
+            PARTS_COUNT=$(ls -1 ${BASE_NAME}part*.zip 2>/dev/null | wc -l || echo 0)
 
-            # Check if this is a split file (has parts)
-            IS_SPLIT=false
-            PARTS_COUNT=0
-            PARTS_JSON="[]"
-
-            if ls ${BASE_NAME}part*.zip 1>/dev/null 2>&1; then
-              IS_SPLIT=true
-              # Count parts
-              PARTS_COUNT=$(ls -1 ${BASE_NAME}part*.zip 2>/dev/null | wc -l || echo 0)
-
-              # Build parts array
-              PARTS_ARRAY=""
-              for i in $(seq 1 $PARTS_COUNT); do
-                PART_NUM=$(printf '%02d' $i)
-                PART_FILE="${BASE_NAME}part${PART_NUM}.zip"
-                if [ -f "$PART_FILE" ]; then
-                  if [ -n "$PARTS_ARRAY" ]; then
-                    PARTS_ARRAY="${PARTS_ARRAY},"
-                  fi
-                  PART_SIZE=$(stat -c%s "$PART_FILE" 2>/dev/null || stat -f%z "$PART_FILE" 2>/dev/null || echo 0)
-                  PARTS_ARRAY="${PARTS_ARRAY}{\"filename\":\"${PART_FILE}\",\"size\":${PART_SIZE}}"
-                fi
-              done
-              PARTS_JSON="[${PARTS_ARRAY}]"
-            fi
-
-            TITLE="${{ inputs.filename }}"
-            if [ -z "$TITLE" ]; then
-              TITLE="$media_file"
-            fi
-
-            # Escape special chars for JSON
-            TITLE=$(echo "$TITLE" | jq -Rs '.[:-1] // .')
-
-            # Check if entry already exists (by filename)
-            EXISTS=$(jq --arg fn "$media_file" '[.[] | select(.filename == $fn and .type == "direct")] | length' ../../history.json)
-
-            if [ "$EXISTS" -eq 0 ]; then
-              # Add new entry
-               if [ "$IS_SPLIT" = true ]; then
-                jq --arg id "$(date +%s)-${RANDOM}" \
-                   --arg filename "$media_file" \
-                   --arg title "$TITLE" \
-                   --arg githubUrl "https://github.com/${{ github.repository }}/blob/main/downloads/files/$media_file" \
-                   --arg thumbnail "" \
-                   --arg type "direct" \
-                   --arg quality "" \
-                   --arg format "$EXT" \
-                   --arg duration "" \
-                   --arg size "$FILE_SIZE" \
-                   --arg createdAt "$TIMESTAMP" \
-                   --arg runId "${{ github.run_id }}" \
-                   --argjson isSplit true \
-                   --argjson parts "$PARTS_JSON" \
-                   '. += [{
-                     id: $id,
-                     filename: $filename,
-                     title: $title,
-                     githubUrl: $githubUrl,
-                     thumbnail: $thumbnail,
-                     type: $type,
-                     quality: $quality,
-                     format: $format,
-                     duration: $duration,
-                     size: $size,
-                     createdAt: $createdAt,
-                     isSplit: $isSplit,
-                     parts: $parts,
-                     runId: $runId
-                   }]' ../../history.json > ../../history.json.tmp && mv ../../history.json.tmp ../../history.json
-              else
-                jq --arg id "$(date +%s)-${RANDOM}" \
-                   --arg filename "$media_file" \
-                   --arg title "$TITLE" \
-                   --arg githubUrl "https://github.com/${{ github.repository }}/blob/main/downloads/files/$media_file" \
-                   --arg thumbnail "" \
-                   --arg type "direct" \
-                   --arg quality "" \
-                   --arg format "$EXT" \
-                   --arg duration "" \
-                   --arg size "$FILE_SIZE" \
-                   --arg createdAt "$TIMESTAMP" \
-                   --arg runId "${{ github.run_id }}" \
-                   --argjson isSplit false \
-                   '. += [{
-                     id: $id,
-                     filename: $filename,
-                     title: $title,
-                     githubUrl: $githubUrl,
-                     thumbnail: $thumbnail,
-                     type: $type,
-                     quality: $quality,
-                     format: $format,
-                     duration: $duration,
-                     size: $size,
-                     createdAt: $createdAt,
-                     isSplit: $isSplit,
-                     parts: [],
-                     runId: $runId
-                   }]' ../../history.json > ../../history.json.tmp && mv ../../history.json.tmp ../../history.json
+            PARTS_ARRAY=""
+            for i in $(seq 1 $PARTS_COUNT); do
+              PART_NUM=$(printf '%02d' $i)
+              PART_FILE="${BASE_NAME}part${PART_NUM}.zip"
+              if [ -f "$PART_FILE" ]; then
+                [ -n "$PARTS_ARRAY" ] && PARTS_ARRAY="${PARTS_ARRAY},"
+                PART_SIZE=$(stat -c%s "$PART_FILE" 2>/dev/null || stat -f%z "$PART_FILE" 2>/dev/null || echo 0)
+                PARTS_ARRAY="${PARTS_ARRAY}{\"filename\":\"${PART_FILE}\",\"size\":${PART_SIZE}}"
               fi
+            done
+            PARTS_JSON="[${PARTS_ARRAY}]"
+          elif [ -f "$FILENAME" ]; then
+            FILE_SIZE=$(stat -c%s "$FILENAME" 2>/dev/null || stat -f%z "$FILENAME" 2>/dev/null || echo 0)
+          else
+            echo "No file found for: $FILENAME, skipping history update"
+            exit 0
+          fi
 
-              echo "Added to history.json: $media_file"
-            fi
-          done
+          TITLE=$(echo "$FILENAME" | jq -Rs '.[:-1] // .')
+
+          EXISTS=$(jq --arg fn "$FILENAME" '[.[] | select(.filename == $fn and .type == "direct")] | length' ../../history.json)
+
+          if [ "$EXISTS" -eq 0 ]; then
+            jq --arg id "$(date +%s)-${RANDOM}" \
+               --arg filename "$FILENAME" \
+               --arg title "$TITLE" \
+               --arg githubUrl "https://github.com/${{ github.repository }}/blob/main/downloads/files/$FILENAME" \
+               --arg type "direct" \
+               --arg format "$EXT" \
+               --arg size "$FILE_SIZE" \
+               --arg createdAt "$TIMESTAMP" \
+               --arg runId "${{ github.run_id }}" \
+               --argjson isSplit "$IS_SPLIT" \
+               --argjson parts "$PARTS_JSON" \
+               '. += [{
+                 id: $id,
+                 filename: $filename,
+                 title: $title,
+                 githubUrl: $githubUrl,
+                 thumbnail: "",
+                 type: $type,
+                 quality: "",
+                 format: $format,
+                 duration: "",
+                 size: $size,
+                 createdAt: $createdAt,
+                 isSplit: $isSplit,
+                 parts: $parts,
+                 runId: $runId
+               }]' ../../history.json > ../../history.json.tmp && mv ../../history.json.tmp ../../history.json
+
+            echo "Added to history.json: $FILENAME"
+          fi
 
           cd ../..
 
-          # Keep only last 100 entries
-          if [ -f history.json ]; then
-            jq '.[-100:]' history.json > history.json.tmp && mv history.json.tmp history.json
-          fi
+          jq '.[-100:]' history.json > history.json.tmp && mv history.json.tmp history.json
 
       - name: Commit and push
         run: |

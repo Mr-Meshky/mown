@@ -49,12 +49,13 @@ jobs:
           yt-dlp --version
 
       - name: Setup cookies
-        if: secrets.YT_COOKIES != ''
         env:
           YT_COOKIES: ${{ secrets.YT_COOKIES }}
         run: |
-          echo "$YT_COOKIES" > /tmp/cookies.txt
-          echo "Cookies file created"
+          if [ -n "$YT_COOKIES" ]; then
+            echo "$YT_COOKIES" > /tmp/cookies.txt
+            echo "Cookies file created"
+          fi
 
       - name: Download video
         env:
