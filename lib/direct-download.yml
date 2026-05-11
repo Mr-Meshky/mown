@@ -129,7 +129,7 @@ jobs:
             TITLE=$(echo "$TITLE" | jq -Rs '.[:-1] // .')
 
             # Check if entry already exists (by filename)
-            EXISTS=$(jq --arg fn "$media_file" '[.[] | select(.filename == $fn and .type == "direct")] | length' ../history.json)
+            EXISTS=$(jq --arg fn "$media_file" '[.[] | select(.filename == $fn and .type == "direct")] | length' ../../history.json)
 
             if [ "$EXISTS" -eq 0 ]; then
               # Add new entry
@@ -163,7 +163,7 @@ jobs:
                      isSplit: $isSplit,
                      parts: $parts,
                      runId: $runId
-                   }]' ../history.json > ../history.json.tmp && mv ../history.json.tmp ../history.json
+                   }]' ../../history.json > ../../history.json.tmp && mv ../../history.json.tmp ../../history.json
               else
                 jq --arg id "$(date +%s)-${RANDOM}" \
                    --arg filename "$media_file" \
@@ -193,7 +193,7 @@ jobs:
                      isSplit: $isSplit,
                      parts: [],
                      runId: $runId
-                   }]' ../history.json > ../history.json.tmp && mv ../history.json.tmp ../history.json
+                   }]' ../../history.json > ../../history.json.tmp && mv ../../history.json.tmp ../../history.json
               fi
 
               echo "Added to history.json: $media_file"

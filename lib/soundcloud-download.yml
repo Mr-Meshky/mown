@@ -37,8 +37,9 @@ jobs:
       - name: Create downloads directory
         run: mkdir -p downloads/files
 
-      - name: Setup yt-dlp
+      - name: Setup dependencies
         run: |
+          sudo apt-get install -y --no-install-recommends ffmpeg
           sudo curl -L https://github.com/yt-dlp/yt-dlp/releases/latest/download/yt-dlp -o /usr/local/bin/yt-dlp
           sudo chmod +x /usr/local/bin/yt-dlp
           yt-dlp --version
@@ -194,7 +195,7 @@ jobs:
 
           TITLE=$(echo "$TITLE" | jq -Rs '.[:-1] // .')
 
-          EXISTS=$(jq --arg fn "$AUDIO_FILE" '[.[] | select(.filename == $fn and .type == "soundcloud")] | length' ../history.json)
+          EXISTS=$(jq --arg fn "$AUDIO_FILE" '[.[] | select(.filename == $fn and .type == "soundcloud")] | length' ../../history.json)
 
           if [ "$EXISTS" -eq 0 ]; then
             jq --arg id "$(date +%s)-${RANDOM}" \
@@ -226,7 +227,7 @@ jobs:
                  isSplit: $isSplit,
                  parts: $parts,
                  runId: $runId
-               }]' ../history.json > ../history.json.tmp && mv ../history.json.tmp ../history.json
+               }]' ../../history.json > ../../history.json.tmp && mv ../../history.json.tmp ../../history.json
 
             echo "Added to history.json: $AUDIO_FILE"
           fi
