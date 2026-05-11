@@ -162,8 +162,10 @@ export function HomeClient() {
       }
       const options: Record<string, string> = {}
       if (inputType === 'youtube') {
-        options.quality = quality.replace('p', '')
-        options.format = downloadType === 'audio' ? 'mp3' : 'mp4'
+        options.quality = downloadType === 'audio' ? 'audio-only' : quality.replace('p', '')
+      }
+      if (inputType === 'soundcloud') {
+        options.quality = quality
       }
       if (filename) options.filename = filename
 

@@ -113,7 +113,6 @@ jobs:
                --arg title "${{ steps.resolve.outputs.domain }}" \
                --arg url "${{ inputs.url }}" \
                --arg githubUrl "https://github.com/${{ github.repository }}/blob/main/downloads/snapshot/$DIR_NAME" \
-               --arg downloadUrl "https://raw.githubusercontent.com/${{ github.repository }}/main/downloads/snapshot/$DIR_NAME" \
                --arg thumbnail "" \
                --arg type "snapshot" \
                --arg quality "" \
@@ -121,6 +120,7 @@ jobs:
                --arg duration "" \
                --arg size "$FILE_SIZE" \
                --arg createdAt "$TIMESTAMP" \
+               --arg runId "${{ github.run_id }}" \
                --argjson fileCount "$FILE_COUNT" \
                --argjson isSplit false \
                '. += [{
@@ -129,7 +129,6 @@ jobs:
                  title: $title,
                  url: $url,
                  githubUrl: $githubUrl,
-                 downloadUrl: $downloadUrl,
                  thumbnail: $thumbnail,
                  type: $type,
                  quality: $quality,
@@ -139,7 +138,8 @@ jobs:
                  createdAt: $createdAt,
                  fileCount: $fileCount,
                  isSplit: $isSplit,
-                 parts: []
+                 parts: [],
+                 runId: $runId
                }]' history.json > history.json.tmp && mv history.json.tmp history.json
 
             echo "Added to history.json: $DIR_NAME"
@@ -151,12 +151,20 @@ jobs:
       - name: Commit and push
         if: steps.resolve.outputs.skip == 'false'
         run: |
-          git config user.name "github-actions[bot]"
-          git config user.email "github-actions[bot]@users.noreply.github.com"
+          set -e
+          git config user.name "mown Downloader"
+          git config user.email "mown@system.local"
 
           git add downloads/snapshot/ history.json
-          git commit -m "mown: Mirror ${{ steps.resolve.outputs.domain }} (${{ steps.resolve.outputs.dir_name }})" || echo "Nothing to commit"
-          git push || echo "Push failed"
+
+          if git diff --cached --quiet; then
+            echo "No changes to commit"
+          else
+            git commit -m "mown: Snapshot ${{ steps.resolve.outputs.domain }} (${{ steps.resolve.outputs.dir_name }})"
+            git pull --rebase origin main
+            git push
+            echo "Committed and pushed"
+          fi
 
       - name: Upload artifact
         if: steps.resolve.outputs.skip == 'false'

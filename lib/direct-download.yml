@@ -31,33 +31,17 @@ jobs:
       - name: Create downloads directory
         run: mkdir -p downloads/files
 
-      - name: Check cache
-        id: cache-check
-        run: |
-          URL_HASH=$(echo -n "${{ inputs.url }}" | md5sum | cut -d' ' -f1)
-          CACHE_FILE="downloads/files/.cache_${URL_HASH}"
-          echo "url_hash=$URL_HASH" >> $GITHUB_OUTPUT
-          echo "cache_file=$CACHE_FILE" >> $GITHUB_OUTPUT
-
-          if [ -f "$CACHE_FILE" ] && [ -f "downloads/files/$(cat "$CACHE_FILE")" ]; then
-            echo "hit=true" >> $GITHUB_OUTPUT
-            echo "Cache hit: $(cat "$CACHE_FILE")"
-          else
-            echo "hit=false" >> $GITHUB_OUTPUT
-          fi
-
       - name: Download file
-        if: steps.cache-check.outputs.hit == 'false'
         env:
           URL: ${{ inputs.url }}
           FILENAME: ${{ inputs.filename }}
         run: |
-          curl -L --retry 3 --connect-timeout 10 --max-time 0 -o "downloads/files/$FILENAME" "$URL"
-          echo "Downloaded: downloads/files/$FILENAME"
-
-          # Save to cache
-          URL_HASH=$(echo -n "$URL" | md5sum | cut -d' ' -f1)
-          echo "$FILENAME" > "downloads/files/.cache_${URL_HASH}"
+          if [ -f "downloads/files/$FILENAME" ]; then
+            echo "File already exists, skipping download"
+          else
+            curl -L --retry 3 --connect-timeout 10 --max-time 0 -o "downloads/files/$FILENAME" "$URL"
+            echo "Downloaded: downloads/files/$FILENAME"
+          fi
 
       - name: Split large files
         run: |
@@ -130,7 +114,7 @@ jobs:
                     PARTS_ARRAY="${PARTS_ARRAY},"
                   fi
                   PART_SIZE=$(stat -c%s "$PART_FILE" 2>/dev/null || stat -f%z "$PART_FILE" 2>/dev/null || echo 0)
-                  PARTS_ARRAY="${PARTS_ARRAY}{\"filename\":\"${PART_FILE}\",\"size\":${PART_SIZE},\"downloadUrl\":\"https://raw.githubusercontent.com/${{ github.repository }}/main/downloads/files/${PART_FILE}\"}"
+                  PARTS_ARRAY="${PARTS_ARRAY}{\"filename\":\"${PART_FILE}\",\"size\":${PART_SIZE}}"
                 fi
               done
               PARTS_JSON="[${PARTS_ARRAY}]"
@@ -149,12 +133,11 @@ jobs:
 
             if [ "$EXISTS" -eq 0 ]; then
               # Add new entry
-              if [ "$IS_SPLIT" = true ]; then
+               if [ "$IS_SPLIT" = true ]; then
                 jq --arg id "$(date +%s)-${RANDOM}" \
                    --arg filename "$media_file" \
                    --arg title "$TITLE" \
                    --arg githubUrl "https://github.com/${{ github.repository }}/blob/main/downloads/files/$media_file" \
-                   --arg downloadUrl "https://raw.githubusercontent.com/${{ github.repository }}/main/downloads/files/$media_file" \
                    --arg thumbnail "" \
                    --arg type "direct" \
                    --arg quality "" \
@@ -162,6 +145,7 @@ jobs:
                    --arg duration "" \
                    --arg size "$FILE_SIZE" \
                    --arg createdAt "$TIMESTAMP" \
+                   --arg runId "${{ github.run_id }}" \
                    --argjson isSplit true \
                    --argjson parts "$PARTS_JSON" \
                    '. += [{
@@ -169,7 +153,6 @@ jobs:
                      filename: $filename,
                      title: $title,
                      githubUrl: $githubUrl,
-                     downloadUrl: $downloadUrl,
                      thumbnail: $thumbnail,
                      type: $type,
                      quality: $quality,
@@ -178,14 +161,14 @@ jobs:
                      size: $size,
                      createdAt: $createdAt,
                      isSplit: $isSplit,
-                     parts: $parts
+                     parts: $parts,
+                     runId: $runId
                    }]' ../history.json > ../history.json.tmp && mv ../history.json.tmp ../history.json
               else
                 jq --arg id "$(date +%s)-${RANDOM}" \
                    --arg filename "$media_file" \
                    --arg title "$TITLE" \
                    --arg githubUrl "https://github.com/${{ github.repository }}/blob/main/downloads/files/$media_file" \
-                   --arg downloadUrl "https://raw.githubusercontent.com/${{ github.repository }}/main/downloads/files/$media_file" \
                    --arg thumbnail "" \
                    --arg type "direct" \
                    --arg quality "" \
@@ -193,13 +176,13 @@ jobs:
                    --arg duration "" \
                    --arg size "$FILE_SIZE" \
                    --arg createdAt "$TIMESTAMP" \
+                   --arg runId "${{ github.run_id }}" \
                    --argjson isSplit false \
                    '. += [{
                      id: $id,
                      filename: $filename,
                      title: $title,
                      githubUrl: $githubUrl,
-                     downloadUrl: $downloadUrl,
                      thumbnail: $thumbnail,
                      type: $type,
                      quality: $quality,
@@ -208,7 +191,8 @@ jobs:
                      size: $size,
                      createdAt: $createdAt,
                      isSplit: $isSplit,
-                     parts: []
+                     parts: [],
+                     runId: $runId
                    }]' ../history.json > ../history.json.tmp && mv ../history.json.tmp ../history.json
               fi
 

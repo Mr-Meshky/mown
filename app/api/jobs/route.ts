@@ -37,19 +37,20 @@ export async function POST(request: NextRequest) {
     if (type === 'youtube') {
       let quality = options?.quality || 'best'
 
-      // Normalize quality - add 'p' suffix if numeric value without 'p'
-      if (quality !== 'best' && quality !== 'audio' && /^\d+$/.test(quality)) {
+      // Normalize numeric quality - add 'p' suffix (e.g. '1080' → '1080p')
+      if (quality !== 'best' && quality !== 'audio-only' && /^\d+$/.test(quality)) {
         quality = quality + 'p'
       }
 
       inputs.quality = quality
-      inputs.format = options?.format || 'mp4'
       if (options?.filename) inputs.filename = options.filename
+    } else if (type === 'soundcloud') {
+      inputs.quality = options?.quality || 'best'
     } else if (type === 'direct') {
       inputs.filename = options?.filename || 'download'
-} else if (type === 'snapshot') {
-       // snapshot workflow only accepts url input
-     }
+    } else if (type === 'snapshot') {
+      // snapshot workflow only accepts url input
+    }
 
     const { runId } = await triggerWorkflow(token, ownerName, repoName, workflowFile, inputs)
 

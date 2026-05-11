@@ -1,0 +1,296 @@
+name: Mown YouTube Download
+
+on:
+  workflow_dispatch:
+    inputs:
+      url:
+        description: 'YouTube URL'
+        required: true
+        type: string
+      quality:
+        description: 'Video quality'
+        required: false
+        default: 'best'
+        type: choice
+        options:
+          - best
+          - 2160p
+          - 1440p
+          - 1080p
+          - 720p
+          - 480p
+          - 360p
+          - audio-only
+
+permissions:
+  contents: read
+  actions: write
+
+jobs:
+  download:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Create downloads directory
+        run: mkdir -p downloads/files
+
+      - name: Setup yt-dlp
+        run: |
+          sudo curl -L https://github.com/yt-dlp/yt-dlp/releases/latest/download/yt-dlp -o /usr/local/bin/yt-dlp
+          sudo chmod +x /usr/local/bin/yt-dlp
+          yt-dlp --version
+
+      - name: Setup cookies
+        if: secrets.YT_COOKIES != ''
+        env:
+          YT_COOKIES: ${{ secrets.YT_COOKIES }}
+        run: |
+          echo "$YT_COOKIES" > /tmp/cookies.txt
+          echo "Cookies file created"
+
+      - name: Download video
+        env:
+          URL: ${{ inputs.url }}
+          QUALITY: ${{ inputs.quality }}
+        run: |
+          FORMAT=""
+          case "$QUALITY" in
+            best)
+              FORMAT="bestvideo[ext=mp4]+bestaudio[ext=m4a]/best[ext=mp4]/best"
+              ;;
+            2160p)
+              FORMAT="bestvideo[height<=2160][ext=mp4]+bestaudio[ext=m4a]/best[height<=2160]"
+              ;;
+            1440p)
+              FORMAT="bestvideo[height<=1440][ext=mp4]+bestaudio[ext=m4a]/best[height<=1440]"
+              ;;
+            1080p)
+              FORMAT="bestvideo[height<=1080][ext=mp4]+bestaudio[ext=m4a]/best[height<=1080]"
+              ;;
+            720p)
+              FORMAT="bestvideo[height<=720][ext=mp4]+bestaudio[ext=m4a]/best[height<=720]"
+              ;;
+            480p)
+              FORMAT="bestvideo[height<=480][ext=mp4]+bestaudio[ext=m4a]/best[height<=480]"
+              ;;
+            360p)
+              FORMAT="bestvideo[height<=360][ext=mp4]+bestaudio[ext=m4a]/best[height<=360]"
+              ;;
+            audio-only)
+              FORMAT="bestaudio[ext=m4a]/bestaudio"
+              ;;
+          esac
+
+          COOKIES_OPT=""
+          if [ -f /tmp/cookies.txt ]; then
+            COOKIES_OPT="--cookies /tmp/cookies.txt"
+          fi
+
+          if [ "$QUALITY" = "audio-only" ]; then
+            yt-dlp $COOKIES_OPT \
+              --format "$FORMAT" \
+              --extract-audio \
+              --audio-format mp3 \
+              --audio-quality 0 \
+              --output "downloads/files/%(title)s.%(ext)s" \
+              --write-thumbnail \
+              --write-info-json \
+              --no-playlist \
+              "$URL"
+          else
+            yt-dlp $COOKIES_OPT \
+              --format "$FORMAT" \
+              --merge-output-format mp4 \
+              --output "downloads/files/%(title)s.%(ext)s" \
+              --write-thumbnail \
+              --write-info-json \
+              --no-playlist \
+              "$URL"
+          fi
+
+          echo "Download completed"
+
+      - name: Get video info
+        id: video-info
+        run: |
+          cd downloads/files
+          INFO_FILE=$(ls -1 *.info.json 2>/dev/null | head -1)
+
+          if [ -n "$INFO_FILE" ]; then
+            TITLE=$(jq -r '.title // "Unknown"' "$INFO_FILE")
+            DURATION=$(jq -r '.duration // ""' "$INFO_FILE")
+            THUMBNAIL=$(jq -r '.thumbnail // ""' "$INFO_FILE")
+            FORMAT=$(jq -r '.ext // "mp4"' "$INFO_FILE")
+
+            # Get the actual video filename
+            VIDEO_FILE=$(ls -1t *.mp4 *.mkv *.webm *.mp3 *.m4a 2>/dev/null | head -1)
+
+            echo "title=$TITLE" >> $GITHUB_OUTPUT
+            echo "duration=$DURATION" >> $GITHUB_OUTPUT
+            echo "thumbnail=$THUMBNAIL" >> $GITHUB_OUTPUT
+            echo "format=$FORMAT" >> $GITHUB_OUTPUT
+            echo "video_file=$VIDEO_FILE" >> $GITHUB_OUTPUT
+          else
+            VIDEO_FILE=$(ls -1t *.mp4 *.mkv *.webm *.mp3 *.m4a 2>/dev/null | head -1)
+            echo "title=YouTube Video" >> $GITHUB_OUTPUT
+            echo "duration=" >> $GITHUB_OUTPUT
+            echo "thumbnail=" >> $GITHUB_OUTPUT
+            echo "format=mp4" >> $GITHUB_OUTPUT
+            echo "video_file=$VIDEO_FILE" >> $GITHUB_OUTPUT
+          fi
+
+      - name: Split large files
+        run: |
+          MAX_SIZE=$((95 * 1024 * 1024))
+          CHUNK_SIZE=$((90 * 1024 * 1024))
+
+          cd downloads/files
+          for file in *.mp4 *.mkv *.webm *.mp3 *.m4a; do
+            [ -f "$file" ] || continue
+            size=$(stat -c%s "$file" 2>/dev/null || stat -f%z "$file" 2>/dev/null || echo 0)
+            if [ "$size" -gt "$MAX_SIZE" ]; then
+              echo "Splitting large file: $file ($size bytes)"
+              base="${file%.*}"
+              ext="${file##*.}"
+
+              split -b "$CHUNK_SIZE" -d -a 2 "$file" "${base}part"
+
+              part_num=1
+              for part in "${base}part"*; do
+                [ -f "$part" ] || continue
+                zip -q "${base}part$(printf '%02d' $part_num).zip" "$part"
+                rm -f "$part"
+                part_num=$((part_num + 1))
+              done
+
+              rm -f "$file"
+              echo "Split into $((part_num - 1)) parts"
+            fi
+          done
+          cd ../..
+
+      - name: Update history.json
+        run: |
+          if [ ! -f history.json ]; then
+            echo "[]" > history.json
+          fi
+
+          cd downloads/files
+
+          TITLE="${{ steps.video-info.outputs.title }}"
+          THUMBNAIL="${{ steps.video-info.outputs.thumbnail }}"
+          DURATION="${{ steps.video-info.outputs.duration }}"
+          FORMAT="${{ steps.video-info.outputs.format }}"
+          VIDEO_FILE="${{ steps.video-info.outputs.video_file }}"
+          TIMESTAMP=$(date -u +'%Y-%m-%dT%H:%M:%SZ')
+
+          if [ -z "$VIDEO_FILE" ] || [ ! -f "$VIDEO_FILE" ]; then
+            VIDEO_FILE=$(ls -1t *.mp4 *.mkv *.webm *.mp3 *.m4a 2>/dev/null | head -1)
+          fi
+
+          if [ -z "$VIDEO_FILE" ]; then
+            echo "No video file found, skipping history update"
+            exit 0
+          fi
+
+          FILE_SIZE=$(stat -c%s "$VIDEO_FILE" 2>/dev/null || stat -f%z "$VIDEO_FILE" 2>/dev/null || echo 0)
+          BASE_NAME="${VIDEO_FILE%.*}"
+          IS_SPLIT=false
+          PARTS_COUNT=0
+          PARTS_JSON="[]"
+
+          if ls ${BASE_NAME}part*.zip 1>/dev/null 2>&1; then
+            IS_SPLIT=true
+            PARTS_COUNT=$(ls -1 ${BASE_NAME}part*.zip 2>/dev/null | wc -l || echo 0)
+
+            PARTS_ARRAY=""
+            for i in $(seq 1 $PARTS_COUNT); do
+              PART_NUM=$(printf '%02d' $i)
+              PART_FILE="${BASE_NAME}part${PART_NUM}.zip"
+              if [ -f "$PART_FILE" ]; then
+                [ -n "$PARTS_ARRAY" ] && PARTS_ARRAY="${PARTS_ARRAY},"
+                PART_SIZE=$(stat -c%s "$PART_FILE" 2>/dev/null || stat -f%z "$PART_FILE" 2>/dev/null || echo 0)
+                PARTS_ARRAY="${PARTS_ARRAY}{\"filename\":\"${PART_FILE}\",\"size\":${PART_SIZE}}"
+              fi
+            done
+            PARTS_JSON="[${PARTS_ARRAY}]"
+          fi
+
+          TITLE=$(echo "$TITLE" | jq -Rs '.[:-1] // .')
+
+          EXISTS=$(jq --arg fn "$VIDEO_FILE" '[.[] | select(.filename == $fn and .type == "youtube")] | length' ../history.json)
+
+          if [ "$EXISTS" -eq 0 ]; then
+            jq --arg id "$(date +%s)-${RANDOM}" \
+               --arg filename "$VIDEO_FILE" \
+               --arg title "$TITLE" \
+               --arg githubUrl "https://github.com/${{ github.repository }}/blob/main/downloads/files/$VIDEO_FILE" \
+               --arg thumbnail "$THUMBNAIL" \
+               --arg type "youtube" \
+               --arg quality "${{ inputs.quality }}" \
+               --arg format "$FORMAT" \
+               --arg duration "$DURATION" \
+               --arg size "$FILE_SIZE" \
+               --arg createdAt "$TIMESTAMP" \
+               --arg runId "${{ github.run_id }}" \
+               --argjson isSplit "$IS_SPLIT" \
+               --argjson parts "$PARTS_JSON" \
+               '. += [{
+                 id: $id,
+                 filename: $filename,
+                 title: $title,
+                 githubUrl: $githubUrl,
+                 thumbnail: $thumbnail,
+                 type: $type,
+                 quality: $quality,
+                 format: $format,
+                 duration: $duration,
+                 size: $size,
+                 createdAt: $createdAt,
+                 isSplit: $isSplit,
+                 parts: $parts,
+                 runId: $runId
+               }]' ../history.json > ../history.json.tmp && mv ../history.json.tmp ../history.json
+
+            echo "Added to history.json: $VIDEO_FILE"
+          fi
+
+          cd ../..
+
+          if [ -f history.json ]; then
+            jq '.[-100:]' history.json > history.json.tmp && mv history.json.tmp history.json
+          fi
+
+      - name: Cleanup metadata files
+        run: rm -f downloads/files/*.info.json downloads/files/*.webp downloads/files/*.jpg downloads/files/*.png 2>/dev/null || true
+
+      - name: Commit and push
+        run: |
+          set -e
+          git config user.name "mown Downloader"
+          git config user.email "mown@system.local"
+
+          git add downloads/files/ history.json
+
+          if git diff --cached --quiet; then
+            echo "No changes to commit"
+          else
+            git commit -m "mown: YouTube $(date -u +'%Y-%m-%d %H:%M:%S UTC')"
+            git pull --rebase origin main
+            git push
+            echo "Committed and pushed"
+          fi
+
+      - name: Upload artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: download
+          path: downloads/files/
+          retention-days: 1

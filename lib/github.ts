@@ -140,13 +140,28 @@ export async function triggerWorkflow(
 ) {
   const octokit = getOctokit(token)
 
-  await octokit.rest.actions.createWorkflowDispatch({
-    owner,
-    repo,
-    workflow_id: workflowFile,
-    ref: 'main',
-    inputs,
-  })
+  try {
+    await octokit.rest.actions.createWorkflowDispatch({
+      owner,
+      repo,
+      workflow_id: workflowFile,
+      ref: 'main',
+      inputs,
+    })
+  } catch (error: any) {
+    if (error.status === 404) {
+      await setupRepo(token, owner, repo)
+      await octokit.rest.actions.createWorkflowDispatch({
+        owner,
+        repo,
+        workflow_id: workflowFile,
+        ref: 'main',
+        inputs,
+      })
+    } else {
+      throw error
+    }
+  }
 
   for (let i = 0; i < 15; i++) {
     await new Promise(r => setTimeout(r, 1000))
@@ -265,7 +280,7 @@ export interface HistoryEntry {
   title: string
   url?: string
   githubUrl: string
-  downloadUrl: string
+  downloadUrl?: string
   thumbnail: string
   type: 'youtube' | 'soundcloud' | 'direct' | 'snapshot'
   quality: string
@@ -274,15 +289,16 @@ export interface HistoryEntry {
   uploader?: string
   track?: string
   album?: string
-  size: number | string
+  size: string
   createdAt: string
   isSplit: boolean
   parts: Array<{
     filename: string
-    size: number | string
-    downloadUrl: string
+    size: string
+    downloadUrl?: string
   }>
   fileCount?: number
+  runId?: string
 }
 
 export async function fetchHistory(
@@ -301,7 +317,26 @@ export async function fetchHistory(
 
     if ('content' in data && data.content) {
       const content = Buffer.from(data.content, 'base64').toString('utf8')
-      return JSON.parse(content)
+      const entries: HistoryEntry[] = JSON.parse(content)
+
+      // Generate authenticated download URLs using the API route
+      const baseUrl = `/api/jobs`
+      return entries.map(entry => {
+        const downloadUrl = entry.runId
+          ? `${baseUrl}/${entry.runId}/download?token=${encodeURIComponent(token)}&owner=${encodeURIComponent(owner)}&repo=${encodeURIComponent(repo)}`
+          : undefined
+
+        return {
+          ...entry,
+          downloadUrl,
+          parts: entry.parts?.map(part => ({
+            ...part,
+            downloadUrl: entry.runId
+              ? `${baseUrl}/${entry.runId}/download?token=${encodeURIComponent(token)}&owner=${encodeURIComponent(owner)}&repo=${encodeURIComponent(repo)}`
+              : undefined,
+          })) || [],
+        }
+      })
     }
 
     return []

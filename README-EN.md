@@ -18,6 +18,7 @@
 ## ✨ Features
 
 - **YouTube downloader** — quality selection (360p → 4K), video (MP4/WebM) or audio (MP3)
+- **SoundCloud downloader** — download tracks with quality options (best, high, medium, low)
 - **Direct URL download** — fetch any public file via `curl`
 - **Webpage snapshot** — save a full offline copy of any page as a single HTML file (via [monolith](https://github.com/Y2Z/monolith))
 - **Auto file splitting** — files over 95 MB are automatically split into ZIP chunks
@@ -43,6 +44,7 @@ Mown (Next.js app)
   ▼
 GitHub Actions (in your own repo)
   ├─ youtube-download.yml  →  yt-dlp + ffmpeg
+  ├─ soundcloud-download.yml → yt-dlp (audio)
   ├─ direct-download.yml   →  curl
   └─ snapshot.yml          →  monolith (Rust)
       │
@@ -109,8 +111,10 @@ Your GitHub token and YouTube cookies **never leave your browser** — they go d
 2. Enter your GitHub token in the settings panel
 3. Click **Initialize Repository** — Mown will automatically:
    - Create a private `mown-downloads` repo in your account
-   - Push the three workflow files (`.github/workflows/`)
+   - Push the four workflow files (`.github/workflows/`)
    - Store your YouTube cookies as an encrypted Actions secret
+
+> **Note:** If you've previously initialized the repo, click **Initialize** again to add the new SoundCloud workflow.
 
 ---
 

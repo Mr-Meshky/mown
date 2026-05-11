@@ -39,6 +39,7 @@
   ],
   "exclude": [
     "node_modules",
-    "messages/*.d.json.ts"
+    "messages/*.d.json.ts",
+    "src-tauri/**/*"
   ]
 }

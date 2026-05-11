@@ -1,0 +1,265 @@
+name: Mown SoundCloud Download
+
+on:
+  workflow_dispatch:
+    inputs:
+      url:
+        description: 'SoundCloud URL'
+        required: true
+        type: string
+      quality:
+        description: 'Audio quality'
+        required: false
+        default: 'best'
+        type: choice
+        options:
+          - best
+          - 320k
+          - 192k
+          - 128k
+
+permissions:
+  contents: read
+  actions: write
+
+jobs:
+  download:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Create downloads directory
+        run: mkdir -p downloads/files
+
+      - name: Setup yt-dlp
+        run: |
+          sudo curl -L https://github.com/yt-dlp/yt-dlp/releases/latest/download/yt-dlp -o /usr/local/bin/yt-dlp
+          sudo chmod +x /usr/local/bin/yt-dlp
+          yt-dlp --version
+
+      - name: Download track
+        env:
+          URL: ${{ inputs.url }}
+          QUALITY: ${{ inputs.quality }}
+        run: |
+          FORMAT=""
+          case "$QUALITY" in
+            best)
+              FORMAT="bestaudio[ext=mp3]/bestaudio/best"
+              ;;
+            320k)
+              FORMAT="bestaudio[ext=mp3][abr<=320]/bestaudio[abr<=320]/best"
+              ;;
+            192k)
+              FORMAT="bestaudio[ext=mp3][abr<=192]/bestaudio[abr<=192]"
+              ;;
+            128k)
+              FORMAT="bestaudio[ext=mp3][abr<=128]/bestaudio[abr<=128]"
+              ;;
+          esac
+
+          yt-dlp \
+            --format "$FORMAT" \
+            --extract-audio \
+            --audio-format mp3 \
+            --audio-quality 0 \
+            --output "downloads/files/%(title)s.%(ext)s" \
+            --write-thumbnail \
+            --write-info-json \
+            --add-metadata \
+            "$URL"
+
+          echo "Download completed"
+
+      - name: Get track info
+        id: track-info
+        run: |
+          cd downloads/files
+          INFO_FILE=$(ls -1 *.info.json 2>/dev/null | head -1)
+
+          if [ -n "$INFO_FILE" ]; then
+            TITLE=$(jq -r '.title // "Unknown Track"' "$INFO_FILE")
+            DURATION=$(jq -r '.duration // ""' "$INFO_FILE")
+            THUMBNAIL=$(jq -r '.thumbnail // ""' "$INFO_FILE")
+            ARTIST=$(jq -r '.artist // .uploader // ""' "$INFO_FILE")
+            ALBUM=$(jq -r '.album // ""' "$INFO_FILE")
+
+            # Get the actual audio filename
+            AUDIO_FILE=$(ls -1t *.mp3 *.m4a *.wav 2>/dev/null | head -1)
+
+            echo "title=$TITLE" >> $GITHUB_OUTPUT
+            echo "duration=$DURATION" >> $GITHUB_OUTPUT
+            echo "thumbnail=$THUMBNAIL" >> $GITHUB_OUTPUT
+            echo "artist=$ARTIST" >> $GITHUB_OUTPUT
+            echo "album=$ALBUM" >> $GITHUB_OUTPUT
+            echo "audio_file=$AUDIO_FILE" >> $GITHUB_OUTPUT
+          else
+            AUDIO_FILE=$(ls -1t *.mp3 *.m4a *.wav 2>/dev/null | head -1)
+            echo "title=SoundCloud Track" >> $GITHUB_OUTPUT
+            echo "duration=" >> $GITHUB_OUTPUT
+            echo "thumbnail=" >> $GITHUB_OUTPUT
+            echo "artist=" >> $GITHUB_OUTPUT
+            echo "album=" >> $GITHUB_OUTPUT
+            echo "audio_file=$AUDIO_FILE" >> $GITHUB_OUTPUT
+          fi
+
+      - name: Split large files
+        run: |
+          MAX_SIZE=$((95 * 1024 * 1024))
+          CHUNK_SIZE=$((90 * 1024 * 1024))
+
+          cd downloads/files
+          for file in *.mp3 *.m4a *.wav; do
+            [ -f "$file" ] || continue
+            size=$(stat -c%s "$file" 2>/dev/null || stat -f%z "$file" 2>/dev/null || echo 0)
+            if [ "$size" -gt "$MAX_SIZE" ]; then
+              echo "Splitting large file: $file ($size bytes)"
+              base="${file%.*}"
+              ext="${file##*.}"
+
+              split -b "$CHUNK_SIZE" -d -a 2 "$file" "${base}part"
+
+              part_num=1
+              for part in "${base}part"*; do
+                [ -f "$part" ] || continue
+                zip -q "${base}part$(printf '%02d' $part_num).zip" "$part"
+                rm -f "$part"
+                part_num=$((part_num + 1))
+              done
+
+              rm -f "$file"
+              echo "Split into $((part_num - 1)) parts"
+            fi
+          done
+          cd ../..
+
+      - name: Update history.json
+        run: |
+          if [ ! -f history.json ]; then
+            echo "[]" > history.json
+          fi
+
+          cd downloads/files
+
+          TITLE="${{ steps.track-info.outputs.title }}"
+          ARTIST="${{ steps.track-info.outputs.artist }}"
+          ALBUM="${{ steps.track-info.outputs.album }}"
+          THUMBNAIL="${{ steps.track-info.outputs.thumbnail }}"
+          DURATION="${{ steps.track-info.outputs.duration }}"
+          AUDIO_FILE="${{ steps.track-info.outputs.audio_file }}"
+          TIMESTAMP=$(date -u +'%Y-%m-%dT%H:%M:%SZ')
+
+          if [ -z "$AUDIO_FILE" ] || [ ! -f "$AUDIO_FILE" ]; then
+            AUDIO_FILE=$(ls -1t *.mp3 *.m4a *.wav 2>/dev/null | head -1)
+          fi
+
+          if [ -z "$AUDIO_FILE" ]; then
+            echo "No audio file found, skipping history update"
+            exit 0
+          fi
+
+          FILE_SIZE=$(stat -c%s "$AUDIO_FILE" 2>/dev/null || stat -f%z "$AUDIO_FILE" 2>/dev/null || echo 0)
+          BASE_NAME="${AUDIO_FILE%.*}"
+          IS_SPLIT=false
+          PARTS_COUNT=0
+          PARTS_JSON="[]"
+
+          if ls ${BASE_NAME}part*.zip 1>/dev/null 2>&1; then
+            IS_SPLIT=true
+            PARTS_COUNT=$(ls -1 ${BASE_NAME}part*.zip 2>/dev/null | wc -l || echo 0)
+
+            PARTS_ARRAY=""
+            for i in $(seq 1 $PARTS_COUNT); do
+              PART_NUM=$(printf '%02d' $i)
+              PART_FILE="${BASE_NAME}part${PART_NUM}.zip"
+              if [ -f "$PART_FILE" ]; then
+                [ -n "$PARTS_ARRAY" ] && PARTS_ARRAY="${PARTS_ARRAY},"
+                PART_SIZE=$(stat -c%s "$PART_FILE" 2>/dev/null || stat -f%z "$PART_FILE" 2>/dev/null || echo 0)
+                PARTS_ARRAY="${PARTS_ARRAY}{\"filename\":\"${PART_FILE}\",\"size\":${PART_SIZE}}"
+              fi
+            done
+            PARTS_JSON="[${PARTS_ARRAY}]"
+          fi
+
+          # Combine title with artist if available
+          if [ -n "$ARTIST" ]; then
+            TITLE="${ARTIST} - ${TITLE}"
+          fi
+
+          TITLE=$(echo "$TITLE" | jq -Rs '.[:-1] // .')
+
+          EXISTS=$(jq --arg fn "$AUDIO_FILE" '[.[] | select(.filename == $fn and .type == "soundcloud")] | length' ../history.json)
+
+          if [ "$EXISTS" -eq 0 ]; then
+            jq --arg id "$(date +%s)-${RANDOM}" \
+               --arg filename "$AUDIO_FILE" \
+               --arg title "$TITLE" \
+               --arg githubUrl "https://github.com/${{ github.repository }}/blob/main/downloads/files/$AUDIO_FILE" \
+               --arg thumbnail "$THUMBNAIL" \
+               --arg type "soundcloud" \
+               --arg quality "${{ inputs.quality }}" \
+               --arg format "mp3" \
+               --arg duration "$DURATION" \
+               --arg size "$FILE_SIZE" \
+               --arg createdAt "$TIMESTAMP" \
+               --arg runId "${{ github.run_id }}" \
+               --argjson isSplit "$IS_SPLIT" \
+               --argjson parts "$PARTS_JSON" \
+               '. += [{
+                 id: $id,
+                 filename: $filename,
+                 title: $title,
+                 githubUrl: $githubUrl,
+                 thumbnail: $thumbnail,
+                 type: $type,
+                 quality: $quality,
+                 format: $format,
+                 duration: $duration,
+                 size: $size,
+                 createdAt: $createdAt,
+                 isSplit: $isSplit,
+                 parts: $parts,
+                 runId: $runId
+               }]' ../history.json > ../history.json.tmp && mv ../history.json.tmp ../history.json
+
+            echo "Added to history.json: $AUDIO_FILE"
+          fi
+
+          cd ../..
+
+          if [ -f history.json ]; then
+            jq '.[-100:]' history.json > history.json.tmp && mv history.json.tmp history.json
+          fi
+
+      - name: Cleanup metadata files
+        run: rm -f downloads/files/*.info.json downloads/files/*.webp downloads/files/*.jpg downloads/files/*.png 2>/dev/null || true
+
+      - name: Commit and push
+        run: |
+          set -e
+          git config user.name "mown Downloader"
+          git config user.email "mown@system.local"
+
+          git add downloads/files/ history.json
+
+          if git diff --cached --quiet; then
+            echo "No changes to commit"
+          else
+            git commit -m "mown: SoundCloud $(date -u +'%Y-%m-%d %H:%M:%S UTC')"
+            git pull --rebase origin main
+            git push
+            echo "Committed and pushed"
+          fi
+
+      - name: Upload artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: download
+          path: downloads/files/
+          retention-days: 1
