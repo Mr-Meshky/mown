@@ -86,6 +86,15 @@
       "cookiesPlaceholder": "# Netscape HTTP Cookie File\n...",
       "saveCookies": "Save Cookies",
       "cookiesSaved": "Cookies saved successfully"
+    },
+    "bale": {
+      "title": "Send to Bale",
+      "enable": "Send track via Bale Messenger",
+      "token": "Bot Token",
+      "tokenPlaceholder": "Bale bot token...",
+      "chatId": "Numeric User ID",
+      "chatIdPlaceholder": "e.g. 123456789",
+      "description": "The downloaded track and cover will be sent directly to you on Bale Messenger"
     }
   },
   "jobConfig": {

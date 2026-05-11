@@ -46,6 +46,8 @@ export async function POST(request: NextRequest) {
       if (options?.filename) inputs.filename = options.filename
     } else if (type === 'soundcloud') {
       inputs.quality = options?.quality || 'best'
+      if (options?.bale_token) inputs.bale_token = options.bale_token
+      if (options?.bale_chat_id) inputs.bale_chat_id = options.bale_chat_id
     } else if (type === 'direct') {
       inputs.filename = options?.filename || 'download'
     } else if (type === 'snapshot') {

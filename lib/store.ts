@@ -29,6 +29,9 @@ export interface Settings {
   owner: string
   repo: string
   cookiesUploaded: boolean
+  baleToken: string
+  baleChatId: string
+  baleEnabled: boolean
 }
 
 const STORE_KEY = 'mown_jobs'
@@ -39,6 +42,9 @@ const DEFAULT_SETTINGS: Settings = {
   owner: '',
   repo: 'mown-downloads',
   cookiesUploaded: false,
+  baleToken: '',
+  baleChatId: '',
+  baleEnabled: false,
 }
 
 // Job functions

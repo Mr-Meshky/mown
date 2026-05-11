@@ -8,6 +8,7 @@ import {
   HardDrive,
   Loader2,
   Merge,
+  MessageCircle,
   Music,
   Settings2,
   Upload,
@@ -59,6 +60,9 @@ export function HomeClient() {
   const [settingUp, setSettingUp] = useState(false)
   const [cookiesUploaded, setCookiesUploaded] = useState(false)
   const [isSetupDone, setIsSetupDone] = useState(false)
+  const [baleEnabled, setBaleEnabled] = useState(false)
+  const [baleToken, setBaleToken] = useState('')
+  const [baleChatId, setBaleChatId] = useState('')
 
   useEffect(() => {
     const settings = getSettings()
@@ -66,6 +70,9 @@ export function HomeClient() {
     if (settings.repo) setRepo(settings.repo)
     if (settings.cookiesUploaded) setCookiesUploaded(settings.cookiesUploaded)
     if (settings.token && settings.repo) setIsSetupDone(true)
+    if (settings.baleEnabled) setBaleEnabled(settings.baleEnabled)
+    if (settings.baleToken) setBaleToken(settings.baleToken)
+    if (settings.baleChatId) setBaleChatId(settings.baleChatId)
   }, [])
 
   function handleTabChange(val: InputType) {
@@ -166,6 +173,10 @@ export function HomeClient() {
       }
       if (inputType === 'soundcloud') {
         options.quality = quality
+        if (baleEnabled && baleToken && baleChatId) {
+          options.bale_token = baleToken
+          options.bale_chat_id = baleChatId
+        }
       }
       if (filename) options.filename = filename
 
@@ -366,6 +377,60 @@ export function HomeClient() {
           </CardContent>
         </Card>
       </div>
+
+      {/* Bale config - SoundCloud only */}
+      {inputType === 'soundcloud' && (
+        <Card className="border-border bg-card">
+          <CardHeader className="px-5 pt-4 pb-3">
+            <CardTitle className="flex items-center gap-2 text-sm font-medium">
+              <MessageCircle className="text-muted-foreground h-4 w-4" />
+              {t('bale.title')}
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-3 px-5 pb-5">
+            <p className="text-muted-foreground text-xs leading-relaxed">{t('bale.description')}</p>
+            <label className="flex cursor-pointer items-center gap-2">
+              <input
+                type="checkbox"
+                checked={baleEnabled}
+                onChange={e => {
+                  setBaleEnabled(e.target.checked)
+                  saveSettings({ baleEnabled: e.target.checked })
+                }}
+                className="h-4 w-4 accent-primary"
+              />
+              <span className="text-sm">{t('bale.enable')}</span>
+            </label>
+            {baleEnabled && (
+              <div className="space-y-2">
+                <Input
+                  placeholder={t('bale.tokenPlaceholder')}
+                  value={baleToken}
+                  onChange={e => {
+                    setBaleToken(e.target.value)
+                    saveSettings({ baleToken: e.target.value })
+                  }}
+                  className="h-9 font-mono text-sm"
+                  dir="ltr"
+                  aria-label={t('bale.token')}
+                />
+                <Input
+                  placeholder={t('bale.chatIdPlaceholder')}
+                  value={baleChatId}
+                  onChange={e => {
+                    setBaleChatId(e.target.value)
+                    saveSettings({ baleChatId: e.target.value })
+                  }}
+                  className="h-9 font-mono text-sm"
+                  dir="ltr"
+                  inputMode="numeric"
+                  aria-label={t('bale.chatId')}
+                />
+              </div>
+            )}
+          </CardContent>
+        </Card>
+      )}
     </form>
   )
 }

@@ -44,9 +44,13 @@ jobs:
       - name: Setup dependencies
         run: |
           sudo apt-get install -y --no-install-recommends ffmpeg
+          curl -fsSL https://deb.nodesource.com/setup_22.x | sudo -E bash -
+          sudo apt-get install -y nodejs
           sudo curl -L https://github.com/yt-dlp/yt-dlp/releases/latest/download/yt-dlp -o /usr/local/bin/yt-dlp
           sudo chmod +x /usr/local/bin/yt-dlp
           yt-dlp --version
+          node --version
+          echo "YTDLP_JS_RUNTIME=node" >> $GITHUB_ENV
 
       - name: Setup cookies
         env:
@@ -97,6 +101,7 @@ jobs:
 
           if [ "$QUALITY" = "audio-only" ]; then
             yt-dlp $COOKIES_OPT \
+              --js-runtimes node \
               --format "$FORMAT" \
               --extract-audio \
               --audio-format mp3 \
@@ -108,6 +113,7 @@ jobs:
               "$URL"
           else
             yt-dlp $COOKIES_OPT \
+              --js-runtimes node \
               --format "$FORMAT" \
               --merge-output-format mp4 \
               --output "downloads/files/%(title)s.%(ext)s" \
@@ -131,7 +137,6 @@ jobs:
             THUMBNAIL=$(jq -r '.thumbnail // ""' "$INFO_FILE")
             FORMAT=$(jq -r '.ext // "mp4"' "$INFO_FILE")
 
-            # Get the actual video filename
             VIDEO_FILE=$(ls -1t *.mp4 *.mkv *.webm *.mp3 *.m4a 2>/dev/null | head -1)
 
             echo "title=$TITLE" >> $GITHUB_OUTPUT

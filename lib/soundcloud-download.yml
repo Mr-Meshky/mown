@@ -17,6 +17,16 @@ on:
           - 320k
           - 192k
           - 128k
+      bale_token:
+        description: 'Bale bot token (optional)'
+        required: false
+        type: string
+        default: ''
+      bale_chat_id:
+        description: 'Bale user numeric ID (optional)'
+        required: false
+        type: string
+        default: ''
 
 permissions:
   contents: read
@@ -237,6 +247,54 @@ jobs:
           if [ -f history.json ]; then
             jq '.[-100:]' history.json > history.json.tmp && mv history.json.tmp history.json
           fi
+
+      - name: Send to Bale
+        env:
+          BALE_TOKEN: ${{ inputs.bale_token }}
+          BALE_CHAT_ID: ${{ inputs.bale_chat_id }}
+        run: |
+          if [ -z "$BALE_TOKEN" ] || [ -z "$BALE_CHAT_ID" ]; then
+            echo "Bale not configured, skipping"
+            exit 0
+          fi
+
+          AUDIO_FILE="${{ steps.track-info.outputs.audio_file }}"
+          TITLE="${{ steps.track-info.outputs.title }}"
+          ARTIST="${{ steps.track-info.outputs.artist }}"
+          DURATION="${{ steps.track-info.outputs.duration }}"
+
+          if [ -z "$AUDIO_FILE" ] || [ ! -f "downloads/files/$AUDIO_FILE" ]; then
+            echo "Audio file not found, skipping Bale send"
+            exit 0
+          fi
+
+          FILE_SIZE=$(stat -c%s "downloads/files/$AUDIO_FILE" 2>/dev/null || echo 0)
+          if [ "$FILE_SIZE" -gt $((48 * 1024 * 1024)) ]; then
+            echo "File too large for Bale (${FILE_SIZE} bytes), skipping"
+            exit 0
+          fi
+
+          if [ -n "$ARTIST" ]; then
+            CAPTION="${ARTIST} - ${TITLE}"
+          else
+            CAPTION="$TITLE"
+          fi
+
+          BALE_API="https://tapi.bale.ai/bot${BALE_TOKEN}"
+          THUMB_FILE=$(ls downloads/files/*.jpg downloads/files/*.webp downloads/files/*.png 2>/dev/null | head -1)
+
+          CURL_ARGS=(
+            -s -X POST "${BALE_API}/sendAudio"
+            -F "chat_id=${BALE_CHAT_ID}"
+            -F "audio=@downloads/files/${AUDIO_FILE}"
+            -F "caption=${CAPTION}"
+          )
+          [ -n "$TITLE" ]    && CURL_ARGS+=(-F "title=${TITLE}")
+          [ -n "$ARTIST" ]   && CURL_ARGS+=(-F "performer=${ARTIST}")
+          [ -n "$DURATION" ] && CURL_ARGS+=(-F "duration=${DURATION}")
+          [ -n "$THUMB_FILE" ] && CURL_ARGS+=(-F "thumbnail=@${THUMB_FILE}")
+
+          curl "${CURL_ARGS[@]}" && echo "Sent to Bale successfully" || echo "Bale send failed (non-fatal)"
 
       - name: Cleanup metadata files
         run: rm -f downloads/files/*.info.json downloads/files/*.webp downloads/files/*.jpg downloads/files/*.png 2>/dev/null || true

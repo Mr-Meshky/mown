@@ -57,6 +57,15 @@
       "cookiesPlaceholder": "محتوای فایل cookies.txt...",
       "saveCookies": "ذخیره کوکی‌ها",
       "cookiesSaved": "کوکی‌ها با موفقیت ذخیره شدند"
+    },
+    "bale": {
+      "title": "ارسال به بله",
+      "enable": "ارسال آهنگ به پیام‌رسان بله",
+      "token": "توکن ربات",
+      "tokenPlaceholder": "توکن ربات بله...",
+      "chatId": "شناسه عددی کاربر",
+      "chatIdPlaceholder": "مثلاً: 123456789",
+      "description": "آهنگ دانلود شده به همراه کاور مستقیماً برای شما در بله ارسال می‌شود"
     }
   },
   "jobConfig": {
