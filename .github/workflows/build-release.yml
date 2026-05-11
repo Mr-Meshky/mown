@@ -40,11 +40,33 @@ jobs:
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
 
-      - name: Build Tauri app
-        run: pnpm tauri:build --target ${{ matrix.arch }}
+      - name: Setup Apple Code Signing
+        run: |
+          if [ -n "$APPLE_CERTIFICATE" ]; then
+            echo "$APPLE_CERTIFICATE" | base64 --decode > /tmp/apple-cert.p12
+            security create-keychain -p temp-ci temp-ci.keychain
+            security default-keychain -s temp-ci.keychain
+            security unlock-keychain -p temp-ci temp-ci.keychain
+            security import /tmp/apple-cert.p12 \
+              -k temp-ci.keychain \
+              -P "$APPLE_CERTIFICATE_PASSWORD" \
+              -T /usr/bin/codesign \
+              -T /usr/bin/security
+            security set-key-partition-list \
+              -S apple-tool:,apple:,codesign: \
+              -s -k temp-ci temp-ci.keychain
+            rm -f /tmp/apple-cert.p12
+            echo "Certificate imported successfully"
+          else
+            echo "No Apple certificate found, skipping code signing setup"
+          fi
         env:
           APPLE_CERTIFICATE: ${{ secrets.APPLE_CERTIFICATE }}
           APPLE_CERTIFICATE_PASSWORD: ${{ secrets.APPLE_CERTIFICATE_PASSWORD }}
+
+      - name: Build Tauri app
+        run: pnpm tauri:build --target ${{ matrix.arch }}
+        env:
           APPLE_SIGNING_IDENTITY: ${{ secrets.APPLE_SIGNING_IDENTITY }}
           APPLE_ID: ${{ secrets.APPLE_ID }}
           APPLE_PASSWORD: ${{ secrets.APPLE_PASSWORD }}
