@@ -21,6 +21,26 @@ on:
           - 480p
           - 360p
           - audio-only
+      bale_token:
+        description: 'Bale bot token (optional)'
+        required: false
+        type: string
+        default: ''
+      bale_chat_id:
+        description: 'Bale user numeric ID (optional)'
+        required: false
+        type: string
+        default: ''
+      rubika_token:
+        description: 'Rubika bot token (optional)'
+        required: false
+        type: string
+        default: ''
+      rubika_chat_id:
+        description: 'Rubika user/channel GUID (optional)'
+        required: false
+        type: string
+        default: ''
 
 permissions:
   contents: read
@@ -75,7 +95,6 @@ jobs:
           yt-dlp --version
           ffmpeg -version | head -1
           node --version
-          echo "YTDLP_JS_RUNTIME=node" >> $GITHUB_ENV
 
       - name: Create downloads directory
         run: mkdir -p downloads/files
@@ -226,20 +245,11 @@ jobs:
           VIDEO_FILE="${{ steps.video-info.outputs.video_file }}"
           TIMESTAMP=$(date -u +'%Y-%m-%dT%H:%M:%SZ')
 
-          if [ -z "$VIDEO_FILE" ] || [ ! -f "$VIDEO_FILE" ]; then
-            VIDEO_FILE=$(ls -1t *.mp4 *.mkv *.webm *.mp3 *.m4a 2>/dev/null | head -1)
-          fi
-
-          if [ -z "$VIDEO_FILE" ]; then
-            echo "No video file found, skipping history update"
-            exit 0
-          fi
-
-          FILE_SIZE=$(stat -c%s "$VIDEO_FILE" 2>/dev/null || stat -f%z "$VIDEO_FILE" 2>/dev/null || echo 0)
           BASE_NAME="${VIDEO_FILE%.*}"
           IS_SPLIT=false
           PARTS_COUNT=0
           PARTS_JSON="[]"
+          FILE_SIZE=0
 
           if ls ${BASE_NAME}part*.zip 1>/dev/null 2>&1; then
             IS_SPLIT=true
@@ -256,9 +266,16 @@ jobs:
               fi
             done
             PARTS_JSON="[${PARTS_ARRAY}]"
+          elif [ -f "$VIDEO_FILE" ]; then
+            FILE_SIZE=$(stat -c%s "$VIDEO_FILE" 2>/dev/null || stat -f%z "$VIDEO_FILE" 2>/dev/null || echo 0)
+          else
+            VIDEO_FILE=$(ls -1t *.mp4 *.mkv *.webm *.mp3 *.m4a 2>/dev/null | head -1)
+            if [ -z "$VIDEO_FILE" ]; then
+              echo "No video file found, skipping history update"
+              exit 0
+            fi
+            FILE_SIZE=$(stat -c%s "$VIDEO_FILE" 2>/dev/null || stat -f%z "$VIDEO_FILE" 2>/dev/null || echo 0)
           fi
-
-          TITLE=$(echo "$TITLE" | jq -Rs '.[:-1] // .')
 
           EXISTS=$(jq --arg fn "$VIDEO_FILE" '[.[] | select(.filename == $fn and .type == "youtube")] | length' ../../history.json)
 
@@ -301,6 +318,75 @@ jobs:
 
           if [ -f history.json ]; then
             jq '.[-100:]' history.json > history.json.tmp && mv history.json.tmp history.json
+          fi
+
+      - name: Send notification to Bale
+        continue-on-error: true
+        env:
+          BALE_TOKEN: ${{ inputs.bale_token }}
+          BALE_CHAT_ID: ${{ inputs.bale_chat_id }}
+        run: |
+          if [ -z "$BALE_TOKEN" ] || [ -z "$BALE_CHAT_ID" ]; then
+            echo "Bale not configured, skipping"
+            exit 0
+          fi
+
+          TITLE="${{ steps.video-info.outputs.title }}"
+          QUALITY="${{ inputs.quality }}"
+          RUN_URL="https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }}"
+
+          MESSAGE="${TITLE}
+          کیفیت: ${QUALITY}
+
+          لینک دانلود:
+          ${RUN_URL}"
+
+          BALE_API="https://tapi.bale.ai/bot${BALE_TOKEN}"
+          curl -s -X POST "${BALE_API}/sendMessage" \
+            -H "Content-Type: application/json" \
+            -d "$(jq -n \
+              --arg chat_id "$BALE_CHAT_ID" \
+              --arg text "$MESSAGE" \
+              '{chat_id: $chat_id, text: $text}')" \
+            && echo "Sent to Bale successfully" || echo "Bale send failed (non-fatal)"
+
+      - name: Send notification to Rubika
+        continue-on-error: true
+        env:
+          RUBIKA_TOKEN: ${{ inputs.rubika_token }}
+          RUBIKA_CHAT_ID: ${{ inputs.rubika_chat_id }}
+        run: |
+          if [ -z "$RUBIKA_TOKEN" ] || [ -z "$RUBIKA_CHAT_ID" ]; then
+            echo "Rubika not configured, skipping"
+            exit 0
+          fi
+
+          TITLE="${{ steps.video-info.outputs.title }}"
+          QUALITY="${{ inputs.quality }}"
+          RUN_URL="https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }}"
+
+          MESSAGE="${TITLE}
+          کیفیت: ${QUALITY}
+
+          لینک دانلود:
+          ${RUN_URL}"
+
+          RUBIKA_API="https://messengerg2b1.iranlms.ir/"
+          SEND_JSON=$(jq -n \
+            --arg auth "$RUBIKA_TOKEN" \
+            --arg chat_id "$RUBIKA_CHAT_ID" \
+            --arg text "$MESSAGE" \
+            '{api_version:"6",auth:$auth,method:"sendMessage",input:{object_guid:$chat_id,text:$text}}')
+
+          SEND_RESP=$(curl -s -X POST "$RUBIKA_API" \
+            -H "Content-Type: application/json" \
+            -d "$SEND_JSON")
+
+          SEND_STATUS=$(echo "$SEND_RESP" | jq -r '.status // "FAILED"')
+          if [ "$SEND_STATUS" = "OK" ]; then
+            echo "Sent to Rubika successfully"
+          else
+            echo "Rubika send failed (non-fatal): $SEND_RESP"
           fi
 
       - name: Cleanup metadata files

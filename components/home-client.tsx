@@ -176,6 +176,14 @@ export function HomeClient() {
       const options: Record<string, string> = {}
       if (inputType === 'youtube') {
         options.quality = downloadType === 'audio' ? 'audio-only' : quality.replace('p', '')
+        if (baleEnabled && baleToken && baleChatId) {
+          options.bale_token = baleToken
+          options.bale_chat_id = baleChatId
+        }
+        if (rubikaEnabled && rubikaToken && rubikaChatId) {
+          options.rubika_token = rubikaToken
+          options.rubika_chat_id = rubikaChatId
+        }
       }
       if (inputType === 'soundcloud') {
         options.quality = quality
@@ -388,8 +396,8 @@ export function HomeClient() {
         </Card>
       </div>
 
-      {/* Messenger configs - SoundCloud only */}
-      {inputType === 'soundcloud' && (
+      {/* Messenger configs - YouTube and SoundCloud */}
+      {(inputType === 'youtube' || inputType === 'soundcloud') && (
         <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
           {/* Bale */}
           <Card className="border-border bg-card">
@@ -400,7 +408,9 @@ export function HomeClient() {
               </CardTitle>
             </CardHeader>
             <CardContent className="space-y-3 px-5 pb-5">
-              <p className="text-muted-foreground text-xs leading-relaxed">{t('bale.description')}</p>
+              <p className="text-muted-foreground text-xs leading-relaxed">
+                {inputType === 'youtube' ? t('bale.descriptionYoutube') : t('bale.description')}
+              </p>
               <label className="flex cursor-pointer items-center gap-2">
                 <input
                   type="checkbox"
@@ -452,7 +462,9 @@ export function HomeClient() {
               </CardTitle>
             </CardHeader>
             <CardContent className="space-y-3 px-5 pb-5">
-              <p className="text-muted-foreground text-xs leading-relaxed">{t('rubika.description')}</p>
+              <p className="text-muted-foreground text-xs leading-relaxed">
+                {inputType === 'youtube' ? t('rubika.descriptionYoutube') : t('rubika.description')}
+              </p>
               <label className="flex cursor-pointer items-center gap-2">
                 <input
                   type="checkbox"

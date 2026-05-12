@@ -44,6 +44,10 @@ export async function POST(request: NextRequest) {
 
       inputs.quality = quality
       if (options?.filename) inputs.filename = options.filename
+      if (options?.bale_token) inputs.bale_token = options.bale_token
+      if (options?.bale_chat_id) inputs.bale_chat_id = options.bale_chat_id
+      if (options?.rubika_token) inputs.rubika_token = options.rubika_token
+      if (options?.rubika_chat_id) inputs.rubika_chat_id = options.rubika_chat_id
     } else if (type === 'soundcloud') {
       inputs.quality = options?.quality || 'best'
       if (options?.bale_token) inputs.bale_token = options.bale_token

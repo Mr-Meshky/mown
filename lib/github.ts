@@ -149,7 +149,8 @@ export async function triggerWorkflow(
       inputs,
     })
   } catch (error: any) {
-    if (error.status === 404) {
+    if (error.status === 404 || error.status === 422) {
+      // Workflow missing or outdated (e.g. new inputs not yet in repo) — push latest files and retry
       await setupRepo(token, owner, repo)
       await octokit.rest.actions.createWorkflowDispatch({
         owner,

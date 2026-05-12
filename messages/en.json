@@ -89,21 +89,23 @@
     },
     "bale": {
       "title": "Send to Bale",
-      "enable": "Send track via Bale Messenger",
+      "enable": "Send via Bale Messenger",
       "token": "Bot Token",
       "tokenPlaceholder": "Bale bot token...",
       "chatId": "Numeric User ID",
       "chatIdPlaceholder": "e.g. 123456789",
-      "description": "The downloaded track and cover will be sent directly to you on Bale Messenger"
+      "description": "The downloaded track and cover will be sent directly to you on Bale Messenger",
+      "descriptionYoutube": "After download, a message with video info and GitHub download link will be sent to you on Bale"
     },
     "rubika": {
       "title": "Send to Rubika",
-      "enable": "Send track via Rubika Messenger",
+      "enable": "Send via Rubika Messenger",
       "token": "Bot Token",
       "tokenPlaceholder": "Rubika bot token...",
       "chatId": "User or Channel GUID",
       "chatIdPlaceholder": "e.g. u0123456789abcdef",
-      "description": "The downloaded track will be sent directly to you on Rubika with no file size limit"
+      "description": "The downloaded track will be sent directly to you on Rubika with no file size limit",
+      "descriptionYoutube": "After download, a message with video info and GitHub download link will be sent to you on Rubika"
     }
   },
   "jobConfig": {
