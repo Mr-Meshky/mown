@@ -1,7 +1,8 @@
 import { cpSync, existsSync, mkdirSync, rmSync } from 'fs';
 import { join } from 'path';
+import { fileURLToPath } from 'url';
 
-const ROOT = new URL('..', import.meta.url).pathname;
+const ROOT = fileURLToPath(new URL('..', import.meta.url));
 const STANDALONE = join(ROOT, '.next', 'standalone');
 const DIST = join(ROOT, 'dist-tauri');
 const LIB_SOURCE = join(ROOT, 'lib');
